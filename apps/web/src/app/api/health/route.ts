@@ -36,7 +36,15 @@ export async function GET(req: NextRequest) {
     hint: 'Supabase → Project Settings → API Keys: the publishable (sb_publishable_…) or legacy "anon" key. Redeploy after changing.' });
   checks.push({ name: 'Supabase secret key (SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY)', ok: service.length > 20,
     hint: 'Same page: the secret (sb_secret_…) or legacy "service_role" key.' });
-  checks.push({ name: 'DATABASE_URL', ok: /^postgres(ql)?:\/\//.test(dbUrl), detail: dbUrl ? (dbUrl.includes(':6543') ? 'transaction pooler (6543)' : 'not port 6543') : undefined,
+  // Show user@host:port (never the password) so a wrong connection string is easy to spot.
+  let dbShape: string | undefined;
+  try {
+    const u = new URL(dbUrl);
+    dbShape = `user=${decodeURIComponent(u.username)} host=${u.hostname} port=${u.port || '5432'}${u.port === '6543' ? '' : ' (should be 6543)'}`;
+  } catch {
+    dbShape = dbUrl ? 'not a valid URL — if the password has characters like @ # / ? use a letters-and-digits password' : undefined;
+  }
+  checks.push({ name: 'DATABASE_URL', ok: /^postgres(ql)?:\/\//.test(dbUrl), detail: dbShape,
     hint: 'Supabase → Connect → Transaction pooler (port 6543), with your database password filled in.' });
   checks.push({ name: 'OPENAI_API_KEY', ok: openai.startsWith('sk-'), hint: 'platform.openai.com → API keys.' });
   checks.push({ name: 'CRON_SECRET', ok: secret.length >= 16, hint: 'Any long random string.' });
@@ -114,7 +122,9 @@ export async function GET(req: NextRequest) {
       }
     } catch (e) {
       checks.push({ name: 'Database connection', ok: false, detail: clip(e),
-        hint: 'Use the Transaction pooler string (port 6543) and put your database password in it (no [ ] brackets).' });
+        hint: /password authentication failed|Tenant or user not found/i.test(String(e))
+          ? 'Expected user=postgres.<project-id>, host=…pooler.supabase.com, port=6543. If those match, the password is wrong: reset it in Supabase (Project Settings → Database) using only letters and digits, and paste it into the string.'
+          : 'Use the Transaction pooler string (Shared pooler, port 6543) and put your database password in it (no [ ] brackets).' });
     } finally {
       await client.end().catch(() => {});
     }
