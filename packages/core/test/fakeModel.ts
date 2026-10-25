@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
-import type { ModelTransport, TransportRequest, TransportResponse } from '../src/openai/structured.js';
-import type { PageExtraction } from '../src/types.js';
-import { FIXTURE_GLOSSARY, FIXTURE_PAGES, type FixturePage } from './fixtures/lanternKeeper.js';
+import type { ModelTransport, TransportRequest, TransportResponse } from '../src/openai/structured';
+import type { PageExtraction } from '../src/types';
+import { FIXTURE_GLOSSARY, FIXTURE_PAGES, type FixturePage } from './fixtures/lanternKeeper';
 
 // Deterministic stand-in for the OpenAI transport in the golden pipeline test. It "reads" page
 // images by looking up the sha256 of the exact image bytes the pipeline sends (the test

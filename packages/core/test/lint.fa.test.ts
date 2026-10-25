@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { fixPersian, ZWNJ } from '../src/lint/fa.js';
-import { lintBlock } from '../src/lint/index.js';
+import { fixPersian, ZWNJ } from '../src/lint/fa';
+import { lintBlock } from '../src/lint/index';
 
 const fx = (s: string, persianDigits = true) => fixPersian(s, { persianDigits }).text;
 const Z = ZWNJ;

@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { languageName, type BookSettings } from './types.js';
+import { languageName, type BookSettings } from './types';
 
 // Prompts are versioned files in packages/core/prompts/. The version is part of every content
 // hash, so editing a prompt and bumping its version re-runs exactly the affected stage.

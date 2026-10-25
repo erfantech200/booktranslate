@@ -1,9 +1,9 @@
-import { maybeOne, one, query, tx } from '../db/pool.js';
-import { sha256 } from '../hash.js';
-import { enqueue } from '../queue.js';
-import { isRtl, type BlockType, type PageExtraction, type Warning } from '../types.js';
-import { loadBatch } from './ingest.js';
-import type { JobContext } from './context.js';
+import { maybeOne, one, query, tx } from '../db/pool';
+import { sha256 } from '../hash';
+import { enqueue } from '../queue';
+import { isRtl, type BlockType, type PageExtraction, type Warning } from '../types';
+import { loadBatch } from './ingest';
+import type { JobContext } from './context';
 
 // ─── Ordering ───────────────────────────────────────────────────────────────────────────────
 

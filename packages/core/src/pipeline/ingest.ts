@@ -1,10 +1,10 @@
-import { env } from '../config.js';
-import { maybeOne, one, query } from '../db/pool.js';
-import { sha256 } from '../hash.js';
-import { enqueue } from '../queue.js';
-import { normalizeImage } from './image.js';
-import { hasUsableTextLayer, pdfPageTexts, renderPdfPage } from './pdf.js';
-import { pagePath, PermanentError, type JobContext } from './context.js';
+import { env } from '../config';
+import { maybeOne, one, query } from '../db/pool';
+import { sha256 } from '../hash';
+import { enqueue } from '../queue';
+import { normalizeImage } from './image';
+import { hasUsableTextLayer, pdfPageTexts, renderPdfPage } from './pdf';
+import { pagePath, PermanentError, type JobContext } from './context';
 
 interface SourceFile {
   id: string;

@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 import type { z } from 'zod';
-import { env, type ReasoningEffort, type Stage } from '../config.js';
-import { costUsd, ZERO_USAGE, type Usage } from '../cost.js';
+import { env, type ReasoningEffort, type Stage } from '../config';
+import { costUsd, ZERO_USAGE, type Usage } from '../cost';
 
 // The ONLY place that talks to OpenAI. Every call uses Structured Outputs (strict JSON schema),
 // is validated with zod, gets one corrective retry on invalid output, and is usage-logged.

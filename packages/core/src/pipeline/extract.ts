@@ -1,12 +1,12 @@
-import { env, stageModel } from '../config.js';
-import { maybeOne, one, query } from '../db/pool.js';
-import { hashOf, sha256 } from '../hash.js';
-import { InvalidModelOutputError, structuredCall } from '../openai/structured.js';
-import { ocrPrompt, PROMPT_VERSIONS, structurePrompt } from '../prompts.js';
-import { enqueue } from '../queue.js';
-import { PageExtraction, type ExtractedBlock } from '../types.js';
-import { splitSpread, thumbnail, toDataUrl } from './image.js';
-import { pagePath, PermanentError, type JobContext } from './context.js';
+import { env, stageModel } from '../config';
+import { maybeOne, one, query } from '../db/pool';
+import { hashOf, sha256 } from '../hash';
+import { InvalidModelOutputError, structuredCall } from '../openai/structured';
+import { ocrPrompt, PROMPT_VERSIONS, structurePrompt } from '../prompts';
+import { enqueue } from '../queue';
+import { PageExtraction, type ExtractedBlock } from '../types';
+import { splitSpread, thumbnail, toDataUrl } from './image';
+import { pagePath, PermanentError, type JobContext } from './context';
 
 interface PageRow {
   id: string;

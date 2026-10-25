@@ -63,6 +63,9 @@ supabase/migrations/          SQL, RLS on every table
   provenance (`page_ids[]`). Re-runs never touch `user_override`.
 - Persian lint applies only safe auto-fixes (ی/ک, ZWNJ, punctuation, digits). Everything else is a
   flag on the block.
+- Relative imports inside `packages/core` are extensionless (`'./types'`, not `'./types.js'`):
+  Turbopack doesn't map `.js`→`.ts` for the transpiled workspace package. tsx/Vitest/Next all
+  resolve extensionless imports (`moduleResolution: Bundler`).
 - UI copy goes in `apps/web/messages/{fa,en}.json`. Use logical CSS (`ms-`/`me-`, `start`/`end`),
   never `left`/`right`.
 - Status shown in the UI is read from the DB (pages.status, jobs, usage_log). No fake progress.

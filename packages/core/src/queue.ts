@@ -1,5 +1,5 @@
-import { query, maybeOne, tx, type Queryable } from './db/pool.js';
-import type { JobType } from './types.js';
+import { query, maybeOne, tx, type Queryable } from './db/pool';
+import type { JobType } from './types';
 
 export interface Job {
   id: string;

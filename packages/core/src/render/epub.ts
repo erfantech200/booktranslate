@@ -1,8 +1,8 @@
 import JSZip from 'jszip';
 import { randomUUID } from 'node:crypto';
-import { buildDocument, escapeXml, type BuiltDocument, type RenderBook } from './document.js';
-import { FONT_FILES, fontBytes } from './fonts.js';
-import { bookCss, frontMatterStrings } from './pdf.js';
+import { buildDocument, escapeXml, type BuiltDocument, type RenderBook } from './document';
+import { FONT_FILES, fontBytes } from './fonts';
+import { bookCss, frontMatterStrings } from './pdf';
 
 // EPUB 3: one XHTML file per chapter, nav TOC, embedded fonts, popup footnotes
 // (epub:type="noteref" → <aside epub:type="footnote">), RTL page progression for RTL targets.

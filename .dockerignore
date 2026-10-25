@@ -1,0 +1,8 @@
+**/node_modules
+**/.next
+.git
+.tools
+fixtures/out
+fixtures/real
+.env*
+!.env.example

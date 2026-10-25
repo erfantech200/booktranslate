@@ -1,4 +1,4 @@
-import { prices, type ModelPrice } from './config.js';
+import { prices, type ModelPrice } from './config';
 
 export interface Usage {
   inputTokens: number;

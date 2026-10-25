@@ -7,8 +7,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp, { type Sharp } from 'sharp';
 import { chromium } from 'playwright';
-import { fontDataUrl, FONT_FILES } from '../src/render/fonts.js';
-import { FIXTURE_PAGES, type FixturePage } from '../test/fixtures/lanternKeeper.js';
+import { fontDataUrl, FONT_FILES } from '../src/render/fonts';
+import { FIXTURE_PAGES, type FixturePage } from '../test/fixtures/lanternKeeper';
 
 const out = join(import.meta.dirname, '..', '..', '..', 'fixtures', 'generated');
 mkdirSync(out, { recursive: true });

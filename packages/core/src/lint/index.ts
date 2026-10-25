@@ -1,7 +1,7 @@
-import type { LintFlag } from '../types.js';
-import { fixPersian, normalizeForMatch } from './fa.js';
+import type { LintFlag } from '../types';
+import { fixPersian, normalizeForMatch } from './fa';
 
-export { fixPersian, normalizeForMatch, toPersianDigits, ZWNJ } from './fa.js';
+export { fixPersian, normalizeForMatch, toPersianDigits, ZWNJ } from './fa';
 
 export interface GlossaryEntry {
   source_term: string;

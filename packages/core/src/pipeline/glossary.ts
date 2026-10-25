@@ -1,14 +1,14 @@
-import { stageModel } from '../config.js';
-import { estimateTokens } from '../cost.js';
-import { one, query } from '../db/pool.js';
-import { hashOf } from '../hash.js';
-import { autoFix } from '../lint/index.js';
-import { InvalidModelOutputError, structuredCall } from '../openai/structured.js';
-import { glossaryPrompt, PROMPT_VERSIONS } from '../prompts.js';
-import { enqueue } from '../queue.js';
-import { GlossaryOutput, parseBookSettings, type BookBrief } from '../types.js';
-import { loadBatch } from './ingest.js';
-import type { JobContext } from './context.js';
+import { stageModel } from '../config';
+import { estimateTokens } from '../cost';
+import { one, query } from '../db/pool';
+import { hashOf } from '../hash';
+import { autoFix } from '../lint/index';
+import { InvalidModelOutputError, structuredCall } from '../openai/structured';
+import { glossaryPrompt, PROMPT_VERSIONS } from '../prompts';
+import { enqueue } from '../queue';
+import { GlossaryOutput, parseBookSettings, type BookBrief } from '../types';
+import { loadBatch } from './ingest';
+import type { JobContext } from './context';
 
 const EXCERPT_TOKENS = 12_000;
 

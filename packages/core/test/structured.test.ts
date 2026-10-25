@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { BudgetExceededError, InvalidModelOutputError, structuredCall, type ModelTransport, type TransportResponse, type UsageRecord } from '../src/openai/structured.js';
-import { costUsd, estimateRun } from '../src/cost.js';
+import { BudgetExceededError, InvalidModelOutputError, structuredCall, type ModelTransport, type TransportResponse, type UsageRecord } from '../src/openai/structured';
+import { costUsd, estimateRun } from '../src/cost';
 
 const Schema = z.object({ items: z.array(z.object({ id: z.string(), text: z.string() })) });
 const u = { inputTokens: 1000, cachedTokens: 400, cacheWriteTokens: 0, outputTokens: 200, reasoningTokens: 50 };

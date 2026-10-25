@@ -1,6 +1,6 @@
-import type { CallHooks, ModelTransport } from '../openai/structured.js';
-import type { Storage } from '../storage.js';
-import type { Job } from '../queue.js';
+import type { CallHooks, ModelTransport } from '../openai/structured';
+import type { Storage } from '../storage';
+import type { Job } from '../queue';
 
 export interface PipelineDeps {
   storage: Storage;

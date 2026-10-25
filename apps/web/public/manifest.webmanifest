@@ -1,0 +1,11 @@
+{
+  "name": "Bookbridge",
+  "short_name": "Bookbridge",
+  "start_url": "/",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "fa",
+  "background_color": "#faf8f3",
+  "theme_color": "#1f3a5f",
+  "icons": []
+}

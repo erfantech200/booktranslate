@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
+  --color-paper: #faf8f3;
+  --color-ink: #1d2433;
+  --color-accent: #1f3a5f;
+  --color-accent-soft: #e6edf6;
+}
+
+html { background: var(--color-paper); color: var(--color-ink); }
+body { min-height: 100dvh; -webkit-font-smoothing: antialiased; }
+
+/* Status chips: one colour per pipeline state. */
+.chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap; }
+.chip-idle { @apply bg-slate-100 text-slate-600; }
+.chip-busy { @apply bg-amber-100 text-amber-800; }
+.chip-ok { @apply bg-emerald-100 text-emerald-800; }
+.chip-warn { @apply bg-orange-100 text-orange-800; }
+.chip-err { @apply bg-red-100 text-red-700; }
+
+.card { @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm; }
+.btn { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50; }
+.btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50; }
+.input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none; }
+.label { @apply mb-1 block text-xs font-medium text-slate-600; }

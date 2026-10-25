@@ -3,17 +3,17 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { one, query } from '../../src/db/pool.js';
-import { env } from '../../src/config.js';
-import { enqueue } from '../../src/queue.js';
-import { drain } from '../../src/runner.js';
-import { LocalStorage } from '../../src/storage.js';
-import { dbCallHooks } from '../../src/usage.js';
-import { normalizeImage, splitSpread } from '../../src/pipeline/image.js';
-import { renderPdfPage } from '../../src/pipeline/pdf.js';
-import { closeBrowser } from '../../src/render/pdf.js';
-import { FakeTransport } from '../fakeModel.js';
-import { createBatch, createBook, createUser, RUN } from './helpers.js';
+import { one, query } from '../../src/db/pool';
+import { env } from '../../src/config';
+import { enqueue } from '../../src/queue';
+import { drain } from '../../src/runner';
+import { LocalStorage } from '../../src/storage';
+import { dbCallHooks } from '../../src/usage';
+import { normalizeImage, splitSpread } from '../../src/pipeline/image';
+import { renderPdfPage } from '../../src/pipeline/pdf';
+import { closeBrowser } from '../../src/render/pdf';
+import { FakeTransport } from '../fakeModel';
+import { createBatch, createBook, createUser, RUN } from './helpers';
 
 const FIX = join(import.meta.dirname, '..', '..', '..', '..', 'fixtures', 'generated');
 const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
@@ -167,7 +167,7 @@ describe.skipIf(!RUN || !existsSync(join(FIX, 'manifest.json')))('golden pipelin
     const epubFile = join(mkdtempSync(join(tmpdir(), 'bb-epub-')), 'golden.epub');
     writeFileSync(epubFile, await storage.download('exports', epub.storage_path));
     if (!process.env.SKIP_EPUBCHECK) {
-      const { epubcheck } = await import('../../scripts/epubcheck.js');
+      const { epubcheck } = await import('../../scripts/epubcheck');
       const r = epubcheck(epubFile);
       expect(r.output).toContain('No errors or warnings detected');
     }

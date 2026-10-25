@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { joinText, orderPages, qualityWarnings, stitch, type OrderablePage } from '../src/pipeline/assemble.js';
-import { chunkBlocks, firstOccurrences, termsIn, translationHash } from '../src/pipeline/translate.js';
-import { BookSettings, type PageExtraction } from '../src/types.js';
-import { splitTextIntoPages } from '../src/pipeline/ingest.js';
-import { hasUsableTextLayer } from '../src/pipeline/pdf.js';
+import { joinText, orderPages, qualityWarnings, stitch, type OrderablePage } from '../src/pipeline/assemble';
+import { chunkBlocks, firstOccurrences, termsIn, translationHash } from '../src/pipeline/translate';
+import { BookSettings, type PageExtraction } from '../src/types';
+import { splitTextIntoPages } from '../src/pipeline/ingest';
+import { hasUsableTextLayer } from '../src/pipeline/pdf';
 
 const page = (id: string, o: Partial<OrderablePage> = {}): OrderablePage => ({
   id, printed_page_number: null, exif_taken_at: null, original_name: `${id}.jpg`, upload_index: 0, source_index: 0,

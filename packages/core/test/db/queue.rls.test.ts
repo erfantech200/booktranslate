@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { query, one } from '../../src/db/pool.js';
-import { claimJobs, completeJob, enqueue, failJob, pauseJob, resumePausedJobs } from '../../src/queue.js';
-import { dbCallHooks } from '../../src/usage.js';
-import { BudgetExceededError } from '../../src/openai/structured.js';
-import { asUser, createBatch, createBook, createUser, RUN } from './helpers.js';
+import { query, one } from '../../src/db/pool';
+import { claimJobs, completeJob, enqueue, failJob, pauseJob, resumePausedJobs } from '../../src/queue';
+import { dbCallHooks } from '../../src/usage';
+import { BudgetExceededError } from '../../src/openai/structured';
+import { asUser, createBatch, createBook, createUser, RUN } from './helpers';
 
 describe.skipIf(!RUN)('queue', () => {
   it('dedupes live jobs and never hands the same job to two workers', async () => {

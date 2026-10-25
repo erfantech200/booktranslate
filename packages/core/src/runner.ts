@@ -1,7 +1,7 @@
-import { env } from './config.js';
-import { BudgetExceededError } from './openai/structured.js';
-import { claimJobs, completeJob, failJob, heartbeat, pauseJob, type Job } from './queue.js';
-import { markJobFailure, PermanentError, runJob, type PipelineDeps } from './pipeline/index.js';
+import { env } from './config';
+import { BudgetExceededError } from './openai/structured';
+import { claimJobs, completeJob, failJob, heartbeat, pauseJob, type Job } from './queue';
+import { markJobFailure, PermanentError, runJob, type PipelineDeps } from './pipeline/index';
 
 export interface RunnerOptions {
   workerId: string;

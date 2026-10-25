@@ -1,8 +1,8 @@
 import { chromium, type Browser } from 'playwright';
-import { pageSizes, type PageSizeKey } from '../config.js';
-import { toPersianDigits } from '../lint/fa.js';
-import { buildDocument, escapeXml, formatNum, type BuiltDocument, type RenderBook } from './document.js';
-import { fontDataUrl, fontFaceCss, fontStack } from './fonts.js';
+import { pageSizes, type PageSizeKey } from '../config';
+import { toPersianDigits } from '../lint/fa';
+import { buildDocument, escapeXml, formatNum, type BuiltDocument, type RenderBook } from './document';
+import { fontDataUrl, fontFaceCss, fontStack } from './fonts';
 
 export interface PdfOptions {
   pageSize: PageSizeKey;

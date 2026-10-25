@@ -12,3 +12,4 @@ fixtures/out/
 .DS_Store
 next-env.d.ts
 *.tsbuildinfo
+fixtures/real/

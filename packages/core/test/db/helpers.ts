@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { query, one } from '../../src/db/pool.js';
+import { query, one } from '../../src/db/pool';
 
 export const RUN = !!process.env.DB_TESTS && !!process.env.DATABASE_URL;
 
@@ -25,7 +25,7 @@ export async function createBatch(userId: string, bookId: string, seq: number): 
 
 /** Run SQL as an authenticated Supabase user (RLS applies), inside a rolled-back transaction. */
 export async function asUser<T>(userId: string | null, email: string | null, fn: (q: (sql: string, params?: unknown[]) => Promise<any[]>) => Promise<T>): Promise<T> {
-  const { getPool } = await import('../../src/db/pool.js');
+  const { getPool } = await import('../../src/db/pool');
   const c = await getPool().connect();
   try {
     await c.query('begin');

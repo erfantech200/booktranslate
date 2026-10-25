@@ -1,15 +1,15 @@
 import pLimit from 'p-limit';
-import { env, stageModel } from '../config.js';
-import { estimateTokens } from '../cost.js';
-import { one, query } from '../db/pool.js';
-import { hashOf } from '../hash.js';
-import { autoFix, lintBlock, type GlossaryEntry } from '../lint/index.js';
-import { InvalidModelOutputError, structuredCall } from '../openai/structured.js';
-import { PROMPT_VERSIONS, styleGuide, translateSystemPrompt } from '../prompts.js';
-import { enqueue } from '../queue.js';
-import { parseBookSettings, TranslationOutput, type BookBrief, type BookSettings, type LintFlag } from '../types.js';
-import { loadBatch } from './ingest.js';
-import type { JobContext } from './context.js';
+import { env, stageModel } from '../config';
+import { estimateTokens } from '../cost';
+import { one, query } from '../db/pool';
+import { hashOf } from '../hash';
+import { autoFix, lintBlock, type GlossaryEntry } from '../lint/index';
+import { InvalidModelOutputError, structuredCall } from '../openai/structured';
+import { PROMPT_VERSIONS, styleGuide, translateSystemPrompt } from '../prompts';
+import { enqueue } from '../queue';
+import { parseBookSettings, TranslationOutput, type BookBrief, type BookSettings, type LintFlag } from '../types';
+import { loadBatch } from './ingest';
+import type { JobContext } from './context';
 
 export interface TBlock {
   id: string;

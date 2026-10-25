@@ -1,5 +1,5 @@
-import { isRtl, type BlockType } from '../types.js';
-import { toPersianDigits } from '../lint/fa.js';
+import { isRtl, type BlockType } from '../types';
+import { toPersianDigits } from '../lint/fa';
 
 // Shared document model for every export format. Blocks become chapters (split at level-1
 // headings) and footnotes are resolved and numbered per chapter. Inline markdown becomes

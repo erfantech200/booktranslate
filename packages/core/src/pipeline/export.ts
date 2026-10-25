@@ -1,10 +1,10 @@
-import { maybeOne, one, query } from '../db/pool.js';
-import { hashOf } from '../hash.js';
-import { ExportOptions, ExportScope, parseBookSettings, type BlockType } from '../types.js';
-import type { RenderBlock, RenderBook } from '../render/document.js';
-import { renderPdf } from '../render/pdf.js';
-import { renderEpub } from '../render/epub.js';
-import { PermanentError, type JobContext } from './context.js';
+import { maybeOne, one, query } from '../db/pool';
+import { hashOf } from '../hash';
+import { ExportOptions, ExportScope, parseBookSettings, type BlockType } from '../types';
+import type { RenderBlock, RenderBook } from '../render/document';
+import { renderPdf } from '../render/pdf';
+import { renderEpub } from '../render/epub';
+import { PermanentError, type JobContext } from './context';
 
 /** Bump when renderer output changes, so cached exports are re-rendered. */
 export const RENDERER_VERSION = 'r1';

@@ -1,14 +1,14 @@
-import { query } from '../db/pool.js';
-import { JobPayloads, type JobType } from '../types.js';
-import { assembleBatch } from './assemble.js';
-import { PermanentError, type JobContext } from './context.js';
-import { cleanupSources, renderExport } from './export.js';
-import { extractPage } from './extract.js';
-import { glossaryBatch } from './glossary.js';
-import { ingestBatch } from './ingest.js';
-import { translateBatch } from './translate.js';
+import { query } from '../db/pool';
+import { JobPayloads, type JobType } from '../types';
+import { assembleBatch } from './assemble';
+import { PermanentError, type JobContext } from './context';
+import { cleanupSources, renderExport } from './export';
+import { extractPage } from './extract';
+import { glossaryBatch } from './glossary';
+import { ingestBatch } from './ingest';
+import { translateBatch } from './translate';
 
-export * from './context.js';
+export * from './context';
 
 type Handler = (ctx: JobContext, payload: any) => Promise<unknown>;
 
@@ -41,7 +41,7 @@ export async function markJobFailure(type: JobType, payload: any, message: strin
       if (kind === 'error') {
         await query(`update public.pages set status = 'error', error = $2 where id = $1`, [payload.pageId, msg]);
         // Let the rest of the batch continue without this page.
-        const { maybeAssemble } = await import('./extract.js');
+        const { maybeAssemble } = await import('./extract');
         const [p] = await query('select batch_id, user_id, book_id from public.pages where id = $1', [payload.pageId]);
         if (p) await maybeAssemble(p);
       } else {

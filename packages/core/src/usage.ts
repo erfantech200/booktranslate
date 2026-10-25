@@ -1,5 +1,5 @@
-import { maybeOne, query } from './db/pool.js';
-import { BudgetExceededError, type CallContext, type CallHooks, type UsageRecord } from './openai/structured.js';
+import { maybeOne, query } from './db/pool';
+import { BudgetExceededError, type CallContext, type CallHooks, type UsageRecord } from './openai/structured';
 
 const int = (n: number) => (Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0);
 

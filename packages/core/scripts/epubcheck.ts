@@ -3,8 +3,8 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { renderEpub } from '../src/render/epub.js';
-import { sampleBook } from '../test/fixtures/sampleBook.js';
+import { renderEpub } from '../src/render/epub';
+import { sampleBook } from '../test/fixtures/sampleBook';
 
 const VERSION = '5.4.0';
 const root = join(import.meta.dirname, '..', '..', '..');

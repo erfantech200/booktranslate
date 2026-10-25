@@ -1,4 +1,4 @@
-import type { RenderBook } from '../../src/render/document.js';
+import type { RenderBook } from '../../src/render/document';
 
 // Original sample text written for these tests (not taken from any book).
 export function sampleBook(): RenderBook {

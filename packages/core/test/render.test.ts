@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterAll, describe, expect, it } from 'vitest';
-import { buildDocument, inlineHtml } from '../src/render/document.js';
-import { closeBrowser, renderPdf } from '../src/render/pdf.js';
-import { renderEpub } from '../src/render/epub.js';
-import { sampleBook } from './fixtures/sampleBook.js';
+import { buildDocument, inlineHtml } from '../src/render/document';
+import { closeBrowser, renderPdf } from '../src/render/pdf';
+import { renderEpub } from '../src/render/epub';
+import { sampleBook } from './fixtures/sampleBook';
 
 const tmp = mkdtempSync(join(tmpdir(), 'bb-render-'));
 afterAll(() => closeBrowser());
@@ -93,7 +93,7 @@ describe('EPUB', () => {
     expect(ch).toContain('epub:type="footnote"');
 
     if (process.env.SKIP_EPUBCHECK) return;
-    const { epubcheck } = await import('../scripts/epubcheck.js');
+    const { epubcheck } = await import('../scripts/epubcheck');
     const r = epubcheck(file);
     expect(r.output).toContain('No errors or warnings detected');
     expect(r.ok).toBe(true);
