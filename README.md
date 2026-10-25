@@ -63,6 +63,8 @@ pnpm typecheck
    - `OPENAI_API_KEY`
    - `CRON_SECRET`: any long random string; it protects `/api/worker/run`
 
+   Functions run in `syd1` (`apps/web/vercel.json`), next to the Supabase database in Sydney; if
+   your database is elsewhere, change it to the nearest Vercel region.
    Fluid compute must be on (default for new projects) so a run can last up to 300 s. Vercel's free
    Hobby plan is for personal, non-commercial use; a team may need Pro.
 3. *(Optional)* An always-on Docker worker (`apps/worker/Dockerfile`, configs for Railway/Fly) can
