@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bookbridge">
+  <!-- Open book whose underside is a pointed Persian arch (as on Isfahan's Si-o-se-pol), reflected in the river. -->
+  <path fill="#1E2F6B" d="M4 23C13 17.5 24 17.8 32 24.6C40 17.8 51 17.5 60 23V41H40.5V35.2C40.5 31.6 36.9 29.4 32 26.2C27.1 29.4 23.5 31.6 23.5 35.2V41H4Z"/>
+  <path fill="none" stroke="#F1F3F6" stroke-width="1.3" stroke-linecap="round" d="M9 27.6C15.4 24.6 22 24.8 27.6 28.6M9 32.2C13.8 30.4 18.4 30.4 21.4 31.6M55 27.6C48.6 24.6 42 24.8 36.4 28.6M55 32.2C50.2 30.4 45.6 30.4 42.6 31.6"/>
+  <path fill="#D4921A" d="M32 19.6L33.9 22.4L32 25.2L30.1 22.4Z"/>
+  <path fill="none" stroke="#1F8F89" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M23.5 45V47.2C23.5 50.6 27.1 52.9 32 56C36.9 52.9 40.5 50.6 40.5 47.2V45"/>
+  <path fill="none" stroke="#1F8F89" stroke-width="1.8" stroke-linecap="round" opacity=".45" d="M6 45H18M46 45H58"/>
+</svg>

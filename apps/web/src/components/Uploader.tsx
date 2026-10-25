@@ -41,6 +41,7 @@ export function Uploader({ bookId, userId, ocrModel, translateModel }: { bookId:
 
   const images = files.filter((f) => kindOf(f) === 'image').length;
   const est = images ? estimateRun({ ocrModel, translateModel, ocrPages: images, sourceTokens: images * 450 }) : null;
+  const num = (n: number) => new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US').format(n);
   const usd = (n: number) => new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
 
   async function start() {
@@ -86,41 +87,59 @@ export function Uploader({ bookId, userId, ocrModel, translateModel }: { bookId:
     }
   }
 
+  const busy = !!progress;
   return (
-    <section className="card space-y-3">
-      <h2 className="font-semibold">{t('upload')}</h2>
+    <section className="sheet p-5" aria-labelledby="upload-h">
+      <h2 id="upload-h" className="sheet-title mb-4">{t('upload')}</h2>
       <div
         onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
         onDragLeave={() => setDrag(false)}
         onDrop={(e) => { e.preventDefault(); setDrag(false); add(e.dataTransfer.files); }}
-        className={`flex flex-col items-center gap-2 rounded-xl border-2 border-dashed p-6 text-center text-sm ${drag ? 'border-accent bg-accent-soft' : 'border-slate-300'}`}
+        className={`flex flex-col items-center gap-3 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors ${
+          drag ? 'border-lajvard bg-lajvard-soft' : 'border-lajvard/25 bg-paper/60'}`}
       >
-        <p>{t('dropHere')}</p>
-        <button type="button" className="btn-ghost" onClick={() => input.current?.click()}>{t('choose')}</button>
+        <svg viewBox="0 0 48 48" className="h-11 w-11 text-lajvard" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M10 12h16a4 4 0 0 1 4 4v22a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V16a4 4 0 0 1 4-4z" />
+          <path d="M16 6h18a4 4 0 0 1 4 4v24" opacity=".5" /><path d="M12 22h12M12 28h12M12 34h7" />
+        </svg>
+        <p className="font-medium">{t('dropHere')}</p>
+        <button type="button" className="btn-line" onClick={() => input.current?.click()} disabled={busy}>{t('choose')}</button>
         <input ref={input} type="file" multiple accept={ACCEPT} className="hidden" onChange={(e) => { add(e.target.files); e.target.value = ''; }} />
-        <p className="text-xs text-slate-500">{t('formats')}</p>
+        <p className="text-[0.8125rem] text-muted">{t('formats')}</p>
       </div>
+
       {files.length > 0 && (
-        <>
-          <ul className="flex max-h-32 flex-wrap gap-1 overflow-auto text-xs">
+        <div className="mt-5 space-y-4">
+          <p className="text-sm font-medium">{t('filesChosen', { n: num(files.length) })}</p>
+          <ul className="flex max-h-36 flex-wrap gap-1.5 overflow-auto">
             {files.map((f, i) => (
-              <li key={i} className="chip chip-idle">
-                <span dir="ltr">{f.name}</span>
-                {!progress && <button aria-label="remove" onClick={() => setFiles(files.filter((_, j) => j !== i))}>×</button>}
+              <li key={i} className="inline-flex max-w-full items-center gap-1 rounded-md bg-lajvard-soft py-0.5 ps-2 pe-1 text-xs text-lajvard">
+                <span dir="ltr" className="truncate">{f.name}</span>
+                {!busy && (
+                  <button type="button" className="rounded p-0.5 hover:bg-lajvard/10" aria-label={`${t('remove')} ${f.name}`}
+                    onClick={() => setFiles(files.filter((_, j) => j !== i))}>
+                    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+                  </button>
+                )}
               </li>
             ))}
           </ul>
-          {est && <p className="text-sm text-slate-600">{t('estimate', { fast: usd(est.totalFastUsd), pages: images })}</p>}
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={deleteSources} onChange={(e) => setDeleteSources(e.target.checked)} />
+          {est && <p className="text-sm text-muted">{t('estimate', { fast: usd(est.totalFastUsd), pages: num(images) })}</p>}
+          <label className="check text-sm">
+            <input type="checkbox" checked={deleteSources} onChange={(e) => setDeleteSources(e.target.checked)} disabled={busy} />
             {t('deleteSources')}
           </label>
-          <button className="btn" disabled={!!progress} onClick={start}>
-            {progress ? t('uploading', { done: progress.done, total: progress.total }) : t('start')}
+          {progress && (
+            <div className="h-1.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={progress.done} aria-valuemin={0} aria-valuemax={progress.total}>
+              <div className="h-full rounded-full bg-zafaran transition-[width]" style={{ width: `${(100 * progress.done) / progress.total}%` }} />
+            </div>
+          )}
+          <button className="btn w-full sm:w-auto" disabled={busy} onClick={start}>
+            {progress ? t('uploading', { done: num(progress.done), total: num(progress.total) }) : t('start')}
           </button>
-        </>
+        </div>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="note note-alert mt-4">{error}</p>}
     </section>
   );
 }

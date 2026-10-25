@@ -7,7 +7,9 @@
     "library": "Library",
     "usage": "Usage & costs",
     "signOut": "Sign out",
-    "language": "فارسی"
+    "language": "فارسی",
+    "main": "Main navigation",
+    "home": "Home"
   },
   "login": {
     "title": "Sign in",
@@ -27,7 +29,8 @@
     "confirmPassword": "Repeat password",
     "savePassword": "Save password and sign in",
     "passwordTooShort": "The password must be at least 8 characters.",
-    "passwordMismatch": "The two passwords do not match."
+    "passwordMismatch": "The two passwords do not match.",
+    "panel": "Send photos of a book’s pages and get back a print-ready Persian translation."
   },
   "library": {
     "title": "Library",
@@ -40,13 +43,16 @@
     "targetLang": "Target language",
     "create": "Create",
     "pages": "{done} of {total} pages",
-    "cost": "Cost: {cost}"
+    "cost": "Cost: {cost}",
+    "emptyHint": "Create a book, then add photos of its pages.",
+    "newBookHint": "A title is enough. You can fill in the rest later.",
+    "count": "{n} books"
   },
   "book": {
     "upload": "Add pages",
     "dropHere": "Drop page photos or a PDF here",
     "choose": "Choose files",
-    "formats": "JPG, PNG, WEBP, HEIC, PDF and TXT — up to 50 files at a time",
+    "formats": "JPG, PNG, WEBP, HEIC, PDF or TXT. Up to 50 files at a time.",
     "uploading": "Uploading {done} of {total}…",
     "start": "Start translation",
     "deleteSources": "Delete original photos when done",
@@ -64,12 +70,20 @@
     "glossary": "Glossary & settings",
     "review": "Review",
     "cost": "Cost so far",
-    "costSplit": "Extraction {ocr} · Translation {tr} · Glossary {gl}",
     "resume": "Resume paused jobs",
     "paused": "A budget cap was reached; jobs are paused.",
     "noPages": "No pages yet.",
     "page": "p. {n}",
-    "unnumbered": "unnumbered"
+    "unnumbered": "unnumbered",
+    "costOcr": "Reading text",
+    "costTranslate": "Translation",
+    "costGlossary": "Glossary",
+    "remove": "Remove",
+    "noExports": "No exports yet.",
+    "pagesCount": "{done} of {total} pages translated",
+    "back": "Back to book",
+    "filesChosen": "{n} files chosen",
+    "pagesHeading": "Batches and pages"
   },
   "status": {
     "uploaded": "Uploaded",
@@ -158,6 +172,7 @@
     "cost": "Cost",
     "monthlyBudget": "Monthly cap (USD)",
     "save": "Save",
-    "pricesNote": "Costs are computed from each call's reported usage and the prices config."
+    "pricesNote": "Costs are computed from each call's reported usage and the prices config.",
+    "none": "Nothing spent this month yet."
   }
 }

@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
+/*
+ * Bookbridge design tokens. Palette from Persian manuscript and tile pigments:
+ * lajvard (lapis), firoozeh (turquoise), zafaran (saffron), anar (pomegranate) on a cool paper.
+ */
 @theme {
-  --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
-  --color-paper: #faf8f3;
-  --color-ink: #1d2433;
-  --color-accent: #1f3a5f;
-  --color-accent-soft: #e6edf6;
+  --color-lajvard: #1E2F6B;
+  --color-lajvard-deep: #152252;
+  --color-lajvard-soft: #E3E8F4;
+  --color-ink: #1A1F33;
+  --color-muted: #5E6680;
+  --color-paper: #F1F3F6;
+  --color-surface: #FFFFFF;
+  --color-line: #D9DEE7;
+  --color-firoozeh: #1F8F89;
+  --color-firoozeh-ink: #146660;
+  --color-firoozeh-soft: #E0F1EF;
+  --color-zafaran: #D4921A;
+  --color-zafaran-ink: #85570A;
+  --color-zafaran-soft: #FBF0DA;
+  --color-anar: #B4363F;
+  --color-anar-soft: #F8E4E6;
+
+  --font-ui: var(--font-estedad-ar), var(--font-estedad-lat), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-kufi-ar), var(--font-kufi-lat), var(--font-estedad-ar), sans-serif;
+  --font-read: var(--font-naskh), var(--font-estedad-lat), serif;
 }
 
-html { background: var(--color-paper); color: var(--color-ink); }
-body { min-height: 100dvh; -webkit-font-smoothing: antialiased; }
+@layer base {
+  html { background: var(--color-paper); color: var(--color-ink); }
+  body { min-height: 100dvh; font-family: var(--font-ui); font-size: 1rem; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--color-zafaran); outline-offset: 2px; border-radius: 4px; }
+  ::selection { background: var(--color-zafaran-soft); }
+}
 
-/* Status chips: one colour per pipeline state. */
-.chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap; }
-.chip-idle { @apply bg-slate-100 text-slate-600; }
-.chip-busy { @apply bg-amber-100 text-amber-800; }
-.chip-ok { @apply bg-emerald-100 text-emerald-800; }
-.chip-warn { @apply bg-orange-100 text-orange-800; }
-.chip-err { @apply bg-red-100 text-red-700; }
+@layer components {
+  /* Buttons: one primary (lapis), one outlined, one quiet text action. */
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-[10px] bg-lajvard px-4 py-2.5 text-[0.9375rem] font-medium text-paper transition-colors hover:bg-lajvard-deep disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-line { @apply inline-flex items-center justify-center gap-2 rounded-[10px] border border-line bg-surface px-3.5 py-2 text-[0.9375rem] font-medium text-ink transition-colors hover:border-lajvard hover:text-lajvard; }
+  .btn-quiet { @apply inline-flex items-center gap-1.5 text-[0.9375rem] font-medium text-lajvard underline-offset-4 hover:underline; }
 
-.card { @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm; }
-.btn { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50; }
-.btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50; }
-.input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none; }
-.label { @apply mb-1 block text-xs font-medium text-slate-600; }
+  .field { @apply block; }
+  .field-label { @apply mb-1.5 block text-sm font-medium text-ink; }
+  .field-hint { @apply mt-1 block text-[0.8125rem] text-muted; }
+  .input { @apply w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-[0.9375rem] text-ink placeholder:text-muted/70 focus:border-lajvard focus:outline-none focus:ring-2 focus:ring-lajvard/15; }
+
+  /* Status tags: colour = state family, text always says the state. */
+  .tag { @apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.75rem] font-medium leading-5 whitespace-nowrap; }
+  .tag::before { content: ""; @apply h-1.5 w-1.5 rounded-full bg-current; }
+  .tag-idle { @apply bg-lajvard-soft text-lajvard; }
+  .tag-work { @apply bg-zafaran-soft text-zafaran-ink; }
+  .tag-done { @apply bg-firoozeh-soft text-firoozeh-ink; }
+  .tag-alert { @apply bg-anar-soft text-anar; }
+
+  /* A surface is used only for content that is a "sheet": forms and lists, not decoration. */
+  .sheet { @apply rounded-xl border border-line bg-surface; }
+
+  /* Book spine rail: the navigation is the spine of the book you are holding. */
+  .spine-band {
+    background-image: linear-gradient(var(--color-zafaran), var(--color-zafaran)), linear-gradient(var(--color-zafaran), var(--color-zafaran));
+    background-position: top, bottom; background-size: 100% 2px; background-repeat: no-repeat;
+  }
+
+  .reading { font-family: var(--font-read); line-height: 2; }
+
+  /* Inline notices: a coloured start edge says what kind of message it is. */
+  .note { @apply rounded-lg border-s-4 px-3.5 py-2.5 text-sm leading-6; }
+  .note-alert { @apply border-anar bg-anar-soft text-anar; }
+  .note-work { @apply border-zafaran bg-zafaran-soft text-zafaran-ink; }
+  .note-done { @apply border-firoozeh bg-firoozeh-soft text-firoozeh-ink; }
+
+  input[type="checkbox"], input[type="radio"] { accent-color: var(--color-lajvard); width: 1rem; height: 1rem; }
+  .check { @apply flex items-center gap-2.5 text-[0.9375rem]; }
+
+  /* Section headings inside sheets. */
+  .sheet-title { @apply font-display text-lg font-bold text-lajvard; }
+}
+
+/* The one motion moment: the arch's reflection draws in on the sign-in screen. */
+.logo-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: logo-draw 1.4s 0.3s cubic-bezier(.6,0,.2,1) forwards; }
+@keyframes logo-draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .logo-draw { animation: none; stroke-dashoffset: 0; } }

@@ -21,48 +21,53 @@ export default async function UsagePage({ params }: { params: Promise<{ locale: 
   const fmt = new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US');
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t('title')}</h1>
-      <section className="card flex flex-wrap items-end gap-6">
+    <div className="space-y-8">
+      <h1 className="font-display text-4xl font-bold text-lajvard">{t('title')}</h1>
+      <section className="sheet flex flex-wrap items-end justify-between gap-6 p-5">
         <div>
-          <div className="text-xs text-slate-500">{t('thisMonth')}</div>
-          <div className="text-3xl font-semibold" dir="ltr">{formatUsd(total)}</div>
+          <h2 className="text-sm text-muted">{t('thisMonth')}</h2>
+          <p className="mt-1 font-display text-4xl font-bold text-lajvard" dir="ltr">{formatUsd(total)}</p>
         </div>
         <form action={setMonthlyBudget} className="flex items-end gap-2">
-          <label><span className="label">{t('monthlyBudget')}</span>
+          <label className="field"><span className="field-label">{t('monthlyBudget')}</span>
             <input name="monthly_budget_usd" type="number" min="0" step="1" dir="ltr" className="input w-32"
               defaultValue={settings?.monthly_budget_usd ?? ''} /></label>
-          <button className="btn-ghost">{t('save')}</button>
+          <button className="btn-line">{t('save')}</button>
         </form>
       </section>
 
-      <section className="card overflow-x-auto">
-        <h2 className="mb-3 font-semibold">{t('byModel')}</h2>
-        <table className="w-full text-sm">
-          <thead className="text-start text-xs text-slate-500">
-            <tr>{['stage', 'model', 'calls', 'input', 'cached', 'output', 'reasoning', 'cost'].map((k) => <th key={k} className="p-1 text-start font-medium">{t(k as any)}</th>)}</tr>
-          </thead>
-          <tbody>
-            {(rows ?? []).map((r, i) => (
-              <tr key={i} className="border-t border-slate-100">
-                <td className="p-1">{r.stage}</td><td className="p-1" dir="ltr">{r.model}</td>
-                <td className="p-1">{fmt.format(r.calls)}</td><td className="p-1">{fmt.format(r.input_tokens)}</td>
-                <td className="p-1">{fmt.format(r.cached_tokens)}</td><td className="p-1">{fmt.format(r.output_tokens)}</td>
-                <td className="p-1">{fmt.format(r.reasoning_tokens)}</td><td className="p-1" dir="ltr">{formatUsd(Number(r.cost_usd))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mt-3 text-xs text-slate-500">{t('pricesNote')}</p>
+      <section className="sheet p-5">
+        <h2 className="sheet-title mb-4">{t('byModel')}</h2>
+        {(rows ?? []).length === 0 ? <p className="text-muted">{t('none')}</p> : (
+          <div className="-mx-5 overflow-x-auto px-5">
+            <table className="w-full min-w-[40rem] text-sm">
+              <thead className="text-muted">
+                <tr className="border-b border-line">{['stage', 'model', 'calls', 'input', 'cached', 'output', 'reasoning', 'cost'].map((k, i) => (
+                  <th key={k} className={`px-2 pb-2 font-medium ${i < 2 ? 'text-start' : 'text-end'}`}>{t(k as any)}</th>))}</tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {(rows ?? []).map((r, i) => (
+                  <tr key={i}>
+                    <td className="px-2 py-2.5">{r.stage}</td><td className="px-2 py-2.5" dir="ltr">{r.model}</td>
+                    {[r.calls, r.input_tokens, r.cached_tokens, r.output_tokens, r.reasoning_tokens].map((v, j) => (
+                      <td key={j} className="px-2 py-2.5 text-end tabular-nums">{fmt.format(v)}</td>))}
+                    <td className="px-2 py-2.5 text-end font-medium" dir="ltr">{formatUsd(Number(r.cost_usd))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-4 text-[0.8125rem] text-muted">{t('pricesNote')}</p>
       </section>
 
-      <section className="card">
-        <h2 className="mb-3 font-semibold">{t('byBook')}</h2>
-        <ul className="divide-y divide-slate-100 text-sm">
+      <section className="sheet p-5">
+        <h2 className="sheet-title mb-3">{t('byBook')}</h2>
+        <ul className="divide-y divide-line">
           {(costs ?? []).map((c) => (
-            <li key={c.book_id} className="flex justify-between py-2">
-              <span>{books?.find((b) => b.id === c.book_id)?.title ?? '—'}</span>
-              <span dir="ltr">{formatUsd(Number(c.cost_usd))}</span>
+            <li key={c.book_id} className="flex justify-between gap-4 py-2.5">
+              <span>{books?.find((b) => b.id === c.book_id)?.title ?? ''}</span>
+              <span className="font-medium" dir="ltr">{formatUsd(Number(c.cost_usd))}</span>
             </li>
           ))}
         </ul>

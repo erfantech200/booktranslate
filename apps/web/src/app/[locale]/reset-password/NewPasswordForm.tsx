@@ -27,16 +27,16 @@ export function NewPasswordForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
-      <label className="block">
-        <span className="label">{t('newPassword')}</span>
+    <form onSubmit={onSubmit} className="space-y-5">
+      <label className="field">
+        <span className="field-label">{t('newPassword')}</span>
         <input name="password" type="password" required minLength={8} autoComplete="new-password" dir="ltr" className="input" />
       </label>
-      <label className="block">
-        <span className="label">{t('confirmPassword')}</span>
+      <label className="field">
+        <span className="field-label">{t('confirmPassword')}</span>
         <input name="confirm" type="password" required minLength={8} autoComplete="new-password" dir="ltr" className="input" />
       </label>
-      {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="note note-alert">{error}</p>}
       <button className="btn w-full py-3" disabled={busy}>{t('savePassword')}</button>
     </form>
   );

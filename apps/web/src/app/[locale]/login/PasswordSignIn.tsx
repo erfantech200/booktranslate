@@ -68,28 +68,28 @@ export function PasswordSignIn() {
 
   if (mode === 'sent') {
     return (
-      <div className="space-y-3">
-        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{t('resetSent')}</p>
-        <button className="text-sm text-accent underline" onClick={() => setMode('signin')}>{t('backToSignIn')}</button>
+      <div className="space-y-5">
+        <p role="status" className="note note-done">{t('resetSent')}</p>
+        <button className="btn-quiet" onClick={() => setMode('signin')}>{t('backToSignIn')}</button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
-      <label className="block">
-        <span className="label">{t('email')}</span>
+    <form onSubmit={onSubmit} className="space-y-5">
+      <label className="field">
+        <span className="field-label">{t('email')}</span>
         <input name="email" type="email" required autoComplete="email" dir="ltr" className="input" />
       </label>
       {mode === 'signin' && (
-        <label className="block">
-          <span className="label">{t('password')}</span>
+        <label className="field">
+          <span className="field-label">{t('password')}</span>
           <input name="password" type="password" required autoComplete="current-password" dir="ltr" className="input" />
         </label>
       )}
-      {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="note note-alert">{error}</p>}
       <button className="btn w-full py-3" disabled={busy}>{mode === 'forgot' ? t('sendReset') : t('signIn')}</button>
-      <button type="button" className="text-sm text-accent underline"
+      <button type="button" className="btn-quiet"
         onClick={() => { setError(null); setMode(mode === 'forgot' ? 'signin' : 'forgot'); }}>
         {mode === 'forgot' ? t('backToSignIn') : t('forgot')}
       </button>
