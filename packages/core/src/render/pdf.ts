@@ -1,4 +1,4 @@
-import { chromium, type Browser } from 'playwright';
+import { chromium, type Browser } from 'playwright-core';
 import { pageSizes, type PageSizeKey } from '../config';
 import { toPersianDigits } from '../lint/fa';
 import { buildDocument, escapeXml, formatNum, type BuiltDocument, type RenderBook } from './document';
@@ -169,9 +169,30 @@ async function headingPages(pdf: Buffer, doc: BuiltDocument): Promise<Map<string
   }
 }
 
+/**
+ * On Vercel (and other serverless hosts) there is no system Chromium: use the slim build from
+ * @sparticuz/chromium. Elsewhere (Docker worker, local dev, tests) use Playwright's browser.
+ */
+async function launch(): Promise<Browser> {
+  const serverless = !!process.env.VERCEL || process.env.CHROMIUM_PACK === 'sparticuz';
+  if (!serverless) return chromium.launch({ args: ['--font-render-hinting=none'] });
+  const { default: slim } = await import('@sparticuz/chromium');
+  slim.setGraphicsMode = false;
+  return chromium.launch({
+    executablePath: await slim.executablePath(),
+    // Playwright doesn't support --single-process (closing a page can kill the browser), and
+    // Vercel functions don't need it.
+    args: [...slim.args.filter((a) => a !== '--single-process'), '--font-render-hinting=none'],
+    headless: true,
+  });
+}
+
 let sharedBrowser: Promise<Browser> | null = null;
 export function browser(): Promise<Browser> {
-  sharedBrowser ??= chromium.launch({ args: ['--font-render-hinting=none'] });
+  sharedBrowser ??= launch().catch((err) => {
+    sharedBrowser = null;
+    throw err;
+  });
   return sharedBrowser;
 }
 export async function closeBrowser() {

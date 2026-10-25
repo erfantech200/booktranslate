@@ -9,7 +9,7 @@ import { PROMPT_VERSIONS, styleGuide, translateSystemPrompt } from '../prompts';
 import { enqueue } from '../queue';
 import { parseBookSettings, TranslationOutput, type BookBrief, type BookSettings, type LintFlag } from '../types';
 import { loadBatch } from './ingest';
-import type { JobContext } from './context';
+import { JobYield, type JobContext } from './context';
 
 export interface TBlock {
   id: string;
@@ -186,7 +186,15 @@ export async function translateBatch(ctx: JobContext, batchId: string) {
   const callCtx = { userId: batch.user_id, bookId: book.id, batchId: batch.id, jobId: ctx.job.id };
   let reviewCount = 0;
 
+  // Serverless runs are time-limited: don't start a chunk that might not finish. Finished
+  // chunks are saved immediately (hash-keyed), so the next run picks up the rest.
+  const CHUNK_MIN_MS = 120_000;
+  let yielded = false;
   const runChunk = async (chunk: TBlock[]) => {
+    if (ctx.timeLeft() < CHUNK_MIN_MS) {
+      yielded = true;
+      return;
+    }
     const start = indexOf.get(chunk[0]!.id)!;
     const context = all.slice(0, start).filter((b) => b.type !== 'footnote').slice(-e.TRANSLATION_CONTEXT_BLOCKS)
       .map((b) => ({ source: b.source_text, translation: translatedNow.get(b.id) ?? (b.translation_hash ? b.translated_text : null) }));
@@ -271,6 +279,10 @@ export async function translateBatch(ctx: JobContext, batchId: string) {
   };
 
   await Promise.all(chunks.map((c) => limit(() => runChunk(c))));
+  if (yielded) {
+    await refreshPageStatuses([...touchedPages]);
+    throw new JobYield(`translated part of the batch; ${stale.length} blocks were pending at start`);
+  }
 
   const left = await one<{ pending: number; review: number }>(
     `select count(*) filter (where status = 'pending')::int as pending,

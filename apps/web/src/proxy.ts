@@ -25,7 +25,8 @@ export async function proxy(req: NextRequest) {
   const { data } = await sb.auth.getUser();
 
   const path = req.nextUrl.pathname;
-  const isPublic = PUBLIC.some((r) => r.test(path)) || path.startsWith('/auth');
+  // /api/worker/* authenticates with CRON_SECRET itself (called by the cron and by the app).
+  const isPublic = PUBLIC.some((r) => r.test(path)) || path.startsWith('/auth') || path.startsWith('/api/worker/');
   if (!data.user && !isPublic) {
     if (path.startsWith('/api')) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     const url = req.nextUrl.clone();

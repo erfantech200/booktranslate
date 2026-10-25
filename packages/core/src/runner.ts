@@ -1,19 +1,23 @@
 import { env } from './config';
 import { BudgetExceededError } from './openai/structured';
-import { claimJobs, completeJob, failJob, heartbeat, pauseJob, type Job } from './queue';
-import { markJobFailure, PermanentError, runJob, type PipelineDeps } from './pipeline/index';
+import { claimJobs, completeJob, failJob, heartbeat, nextRunAt, pauseJob, requeueJob, type Job } from './queue';
+import { JobYield, markJobFailure, PermanentError, runJob, type PipelineDeps } from './pipeline/index';
 
 export interface RunnerOptions {
   workerId: string;
   leaseSeconds?: number;
+  /** Epoch ms after which stages should yield (serverless). Omit for an unlimited worker. */
+  deadline?: number;
   log?: (msg: string, extra?: Record<string, unknown>) => void;
 }
 
 const defaultLog = (msg: string, extra?: Record<string, unknown>) =>
   console.log(JSON.stringify({ t: new Date().toISOString(), msg, ...extra }));
 
+const timeLeftFn = (deadline?: number) => () => (deadline === undefined ? Infinity : deadline - Date.now());
+
 /** Run one claimed job to completion, translating errors into queue state. */
-export async function executeJob(job: Job, deps: PipelineDeps, o: RunnerOptions): Promise<'done' | 'retry' | 'failed' | 'paused'> {
+export async function executeJob(job: Job, deps: PipelineDeps, o: RunnerOptions): Promise<'done' | 'retry' | 'failed' | 'paused' | 'yielded'> {
   const lease = o.leaseSeconds ?? env().JOB_LEASE_SECONDS;
   const log = o.log ?? defaultLog;
   const started = Date.now();
@@ -21,6 +25,7 @@ export async function executeJob(job: Job, deps: PipelineDeps, o: RunnerOptions)
   const ctx = {
     job,
     deps,
+    timeLeft: timeLeftFn(o.deadline),
     log: (msg: string, extra?: Record<string, unknown>) => log(msg, { job: job.id, type: job.type, ...extra }),
     heartbeat: async () => {
       if (Date.now() - lastBeat < 10_000) return;
@@ -36,6 +41,11 @@ export async function executeJob(job: Job, deps: PipelineDeps, o: RunnerOptions)
     log('job done', { job: job.id, type: job.type, ms: Date.now() - started });
     return 'done';
   } catch (err) {
+    if (err instanceof JobYield) {
+      await requeueJob(job.id);
+      log('job yielded (time budget)', { job: job.id, type: job.type, ms: Date.now() - started });
+      return 'yielded';
+    }
     const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     if (err instanceof BudgetExceededError) {
       await pauseJob(job.id, err.message);
@@ -61,6 +71,33 @@ export async function runAvailable(deps: PipelineDeps, slots: number, o: RunnerO
   const jobs = await claimJobs(o.workerId, slots, o.leaseSeconds ?? env().JOB_LEASE_SECONDS);
   await Promise.all(jobs.map((j) => executeJob(j, deps, o)));
   return jobs.length;
+}
+
+/**
+ * Serverless run: `lanes` independent loops claim and run one job at a time until the deadline
+ * is close (a lane only starts a job with at least `claimMinMs` left). A job due within the
+ * remaining time (e.g. a short retry backoff) is waited for. Returns jobs run and whether
+ * runnable work is still left, so the caller can start the next run.
+ */
+export async function runUntil(deps: PipelineDeps, o: RunnerOptions & { deadline: number; lanes?: number; claimMinMs?: number }): Promise<{ ran: number; moreWork: boolean }> {
+  const claimMinMs = o.claimMinMs ?? 120_000;
+  const timeLeft = timeLeftFn(o.deadline);
+  let ran = 0;
+  const lane = async (i: number) => {
+    await new Promise((r) => setTimeout(r, i * 200));
+    while (timeLeft() > claimMinMs) {
+      const n = await runAvailable(deps, 1, o);
+      ran += n;
+      if (n > 0) continue;
+      const next = await nextRunAt();
+      const wait = next ? next.getTime() - Date.now() : Infinity;
+      if (wait > Math.min(30_000, timeLeft() - claimMinMs)) break;
+      await new Promise((r) => setTimeout(r, Math.max(500, wait)));
+    }
+  };
+  await Promise.all(Array.from({ length: o.lanes ?? 3 }, (_, i) => lane(i)));
+  const next = await nextRunAt();
+  return { ran, moreWork: next !== null && next.getTime() - Date.now() < 60_000 };
 }
 
 /** Drain the queue (tests / one-shot CLI): keep claiming until nothing runnable is left. */

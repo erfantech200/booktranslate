@@ -122,6 +122,24 @@ export async function failJob(job: Pick<Job, 'id' | 'attempts' | 'max_attempts'>
   return 'failed';
 }
 
+/** Stage yielded (time budget): back to the queue right away, attempt refunded. */
+export async function requeueJob(jobId: string): Promise<void> {
+  await query(
+    `update public.jobs set status = 'queued', locked_until = null, locked_by = null, run_after = now(),
+            attempts = greatest(0, attempts - 1)
+     where id = $1`,
+    [jobId],
+  );
+}
+
+/** Earliest time a queued job becomes runnable (null if none). */
+export async function nextRunAt(): Promise<Date | null> {
+  const row = await maybeOne<{ t: Date | null }>(
+    `select min(run_after) as t from public.jobs where status = 'queued'
+        or (status = 'running' and locked_until < now())`);
+  return row?.t ?? null;
+}
+
 /** Budget cap hit: park the job. The attempt is refunded; resuming re-queues it. */
 export async function pauseJob(jobId: string, reason: string): Promise<void> {
   await query(

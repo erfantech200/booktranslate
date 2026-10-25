@@ -4,7 +4,7 @@ import { sha256 } from '../hash';
 import { enqueue } from '../queue';
 import { normalizeImage } from './image';
 import { hasUsableTextLayer, pdfPageTexts, renderPdfPage } from './pdf';
-import { pagePath, PermanentError, type JobContext } from './context';
+import { checkpoint, JobYield, pagePath, PermanentError, type JobContext } from './context';
 
 interface SourceFile {
   id: string;
@@ -52,10 +52,10 @@ async function upsertPage(f: SourceFile, sourceIndex: number, name: string): Pro
 }
 
 async function storeImagePage(ctx: JobContext, f: SourceFile, sourceIndex: number, name: string,
-  image: Buffer, fallbackTakenAt: Date | null): Promise<string> {
+  image: () => Promise<Buffer>, fallbackTakenAt: Date | null): Promise<string> {
   const page = await upsertPage(f, sourceIndex, name);
-  if (page.normalized_path) return page.id; // already normalized on a previous attempt
-  const n = await normalizeImage(image, env().OCR_MAX_IMAGE_PX);
+  if (page.normalized_path) return page.id; // already normalized on a previous attempt / run
+  const n = await normalizeImage(await image(), env().OCR_MAX_IMAGE_PX);
   const normPath = pagePath(f.user_id, f.book_id, page.id, 'normalized.jpg');
   const thumbPath = pagePath(f.user_id, f.book_id, page.id, 'thumb.jpg');
   await ctx.deps.storage.upload('pages', normPath, n.normalized, 'image/jpeg');
@@ -109,30 +109,33 @@ export async function ingestBatch(ctx: JobContext, batchId: string): Promise<{ p
   );
   if (files.length === 0) throw new PermanentError('batch has no files');
 
-  const pageIds: string[] = [];
   for (const f of files) {
+    if (f.status === 'ingested' || f.status === 'error') continue; // done in an earlier run
+    checkpoint(ctx, 45_000);
     await ctx.heartbeat();
     try {
       const data = await ctx.deps.storage.download('sources', f.storage_path);
       if (f.kind === 'image') {
-        pageIds.push(await storeImagePage(ctx, f, 0, f.original_name, data, f.last_modified));
+        await storeImagePage(ctx, f, 0, f.original_name, async () => data, f.last_modified);
       } else if (f.kind === 'pdf') {
         const texts = await pdfPageTexts(data);
         for (let i = 0; i < texts.length; i++) {
+          checkpoint(ctx, 30_000); // pages already stored are skipped on the next run
           const name = `${f.original_name} p.${i + 1}`;
           const text = texts[i]!;
-          if (hasUsableTextLayer(text)) pageIds.push(await storeTextPage(f, i, name, text));
-          else pageIds.push(await storeImagePage(ctx, f, i, name, await renderPdfPage(data, i + 1), null));
+          if (hasUsableTextLayer(text)) await storeTextPage(f, i, name, text);
+          else await storeImagePage(ctx, f, i, name, () => renderPdfPage(data, i + 1), null);
           if (i % 5 === 4) await ctx.heartbeat();
         }
       } else if (f.kind === 'text') {
         const parts = splitTextIntoPages(data.toString('utf8'));
-        for (let i = 0; i < parts.length; i++) pageIds.push(await storeTextPage(f, i, `${f.original_name} §${i + 1}`, parts[i]!));
+        for (let i = 0; i < parts.length; i++) await storeTextPage(f, i, `${f.original_name} §${i + 1}`, parts[i]!);
       } else {
         throw new PermanentError(`${f.kind.toUpperCase()} input is not supported yet (Phase 2)`);
       }
       await query(`update public.source_files set status = 'ingested', error = null where id = $1`, [f.id]);
     } catch (err) {
+      if (err instanceof JobYield) throw err;
       const msg = err instanceof Error ? err.message : String(err);
       ctx.log('ingest file failed', { file: f.original_name, error: msg });
       await query(`update public.source_files set status = 'error', error = $2 where id = $1`, [f.id, msg.slice(0, 1000)]);
@@ -140,6 +143,11 @@ export async function ingestBatch(ctx: JobContext, batchId: string): Promise<{ p
     }
   }
 
+  // All pages of the batch, in upload order (includes pages stored by earlier runs).
+  const pageIds = (await query<{ id: string }>(
+    `select p.id from public.pages p join public.source_files f on f.id = p.source_file_id
+     where p.batch_id = $1 and p.parent_page_id is null and p.status = 'queued'
+     order by f.upload_index, p.source_index`, [batch.id])).map((r) => r.id);
   if (pageIds.length === 0) throw new PermanentError('no readable pages in this batch');
   await query(`update public.batches set stage = 'extract' where id = $1`, [batch.id]);
   // Cover = first page of the first batch.

@@ -8,9 +8,12 @@ behind RLS so it can go multi-user later.
 ## Stack
 - pnpm monorepo, TypeScript (strict) everywhere, Node 22.
 - `apps/web`: Next.js 16 App Router + Tailwind 4 + next-intl (fa default/RTL, en). Deploys on Vercel.
-  It talks to Supabase **as the signed-in user** (RLS) and never runs the pipeline.
-- `apps/worker`: long-running Node process in Docker (Railway/Fly). Polls the `jobs` table and runs
-  every pipeline stage. Image = Playwright Chromium + poppler-utils + libheif + fonts.
+  Pages, actions and APIs talk to Supabase **as the signed-in user** (RLS). The one exception is
+  the pipeline worker route `app/api/worker/run` (+ `lib/workerRun.ts`), which runs every stage
+  with the service role inside a 300 s Vercel function (CRON_SECRET-protected).
+- `apps/worker`: optional always-on Docker worker running the same core runner (no time budget).
+- No system binaries at runtime: PDFs via pdfjs-dist + @napi-rs/canvas, HEIC via heic-convert,
+  PDF rendering via playwright-core with @sparticuz/chromium on Vercel (full Chromium elsewhere).
 - `packages/core`: types (zod), DB access (`pg`), queue, OpenAI client, prompts, pipeline stages,
   Persian linter, renderers (HTML→PDF, EPUB). Used by both apps. Web imports only the client-safe
   entry `@bookbridge/core/shared`.
@@ -24,22 +27,23 @@ pnpm install
 pnpm dev:web            # Next dev server (apps/web)
 pnpm dev:worker         # worker with tsx watch (needs DATABASE_URL etc.)
 pnpm typecheck          # tsc --noEmit across all packages
-pnpm test               # vitest: linter, chunking, ordering, stitch, queue, renderers, golden pipeline
-pnpm test:epubcheck     # downloads epubcheck (Maven Central) once, then validates the fixture EPUB
-pnpm db:test            # spins a throwaway local Postgres 16, applies migrations, runs queue tests
+pnpm test               # vitest: linter, chunking, ordering, stitch, structured calls, renderers
+pnpm test:epubcheck     # downloads epubcheck (GitHub releases) once, then validates the fixture EPUB
+pnpm db:test            # throwaway Postgres 16 + migrations: queue, RLS, yield/resume, golden pipeline
 pnpm fixtures           # regenerates synthetic fixture images/PDFs (fixtures/generated/)
 ```
 
 ## Layout
 ```
 apps/web/src/app/[locale]/…   screens (library, book, glossary, usage); app/auth/callback; app/api/*
-apps/worker/src/index.ts      poll loop → core/pipeline handlers
+apps/web/src/app/api/worker/run  Vercel worker route → core runUntil()
+apps/worker/src/index.ts      optional Docker poll loop → core/pipeline handlers
 packages/core/prompts/        versioned prompt files (ocr.v1.md, translate.system.v1.md, style/fa.v1.md …)
 packages/core/config/         prices.json (USD / 1M tokens), page sizes
 packages/core/assets/fonts/   vendored OFL fonts (Noto Naskh Arabic, Vazirmatn, Noto Serif)
 packages/core/src/pipeline/   ingest → extract → assemble (order+stitch+quality) → glossary → translate → render
 packages/core/src/lint/       deterministic per-language post-processing (fa.ts)
-packages/core/src/render/     html.ts (shared book HTML), pdf.ts (Playwright), epub.ts (JSZip)
+packages/core/src/render/     document.ts (shared book model/HTML), pdf.ts (Playwright), epub.ts (JSZip)
 supabase/migrations/          SQL, RLS on every table
 ```
 
@@ -48,6 +52,11 @@ supabase/migrations/          SQL, RLS on every table
   jobs with `SELECT … FOR UPDATE SKIP LOCKED` inside a transaction (works through the transaction
   pooler, so no LISTEN/NOTIFY). Exponential backoff on failure. A lease (`locked_until`) + heartbeat
   lets a crashed worker's job be re-claimed.
+- Serverless runs have a deadline: stages call `checkpoint(ctx, ms)` / check `ctx.timeLeft()` and
+  throw `JobYield` when short of time; the runner re-queues without counting an attempt. Progress
+  must already be saved when yielding (stages are hash-keyed, so the next run resumes).
+- Worker runs are started by `kickWorker()` (`apps/web/src/lib/kick.ts`) after enqueueing, by the
+  status API while a book page is open, by the run itself when work remains, and by a daily cron.
 - Job types: `ingest_batch` → `extract_page` (fan-out) → `assemble_batch` → `glossary_batch` →
   `translate_batch` → `render_export`. Every stage is **idempotent**: re-running it skips work whose
   content hash (`input sha256 + model + prompt version`) hasn't changed.
@@ -76,9 +85,17 @@ supabase/migrations/          SQL, RLS on every table
 - All files live in private buckets behind short-lived signed URLs (≤10 min).
 - Every model call: Structured Outputs + zod. On invalid output: retry once, then flag.
 - New table ⇒ `user_id` column + RLS enabled + owner policies in the same migration.
-- The worker uses the service role. The web app never does, except in the allowlist check
-  (no service key in client bundles).
-- Don't bump `playwright` without matching the Docker base image tag (`mcr.microsoft.com/playwright:vX-noble`).
+- Only the worker (route or Docker app) uses the service role / DATABASE_URL. Never import
+  `@bookbridge/core` (server entry) or `lib/workerRun.ts` from pages, actions or client code.
+- Keep the worker function under Vercel's 250 MB limit: native packages stay in
+  `serverExternalPackages`, data files go in `outputFileTracingIncludes`, musl builds are excluded
+  (`apps/web/next.config.ts`). Check the size of `.next/server/app/api/worker/run/route.js.nft.json`
+  after adding dependencies.
+- Turbopack's file tracer crashes on path expressions that statically resolve to a directory
+  (`join(process.cwd(), 'dir')`, `import.meta.url` + `'..'`). Runtime asset paths go through
+  `packages/core/src/assets.ts`.
+- Don't bump `playwright-core` without matching the Docker base image tag (`mcr.microsoft.com/playwright:vX-noble`)
+  and checking @sparticuz/chromium still works with it (filter out `--single-process`).
 
 ## Phase status
 Phase 1 (MVP) is what is built. Phase 2 items (reader, camera capture, quality-gate blocking, Batch

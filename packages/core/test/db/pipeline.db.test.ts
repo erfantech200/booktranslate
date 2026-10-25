@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { one, query } from '../../src/db/pool';
 import { env } from '../../src/config';
-import { enqueue } from '../../src/queue';
-import { drain } from '../../src/runner';
+import { claimJobs, enqueue } from '../../src/queue';
+import { drain, executeJob, runUntil } from '../../src/runner';
 import { LocalStorage } from '../../src/storage';
 import { dbCallHooks } from '../../src/usage';
 import { normalizeImage, splitSpread } from '../../src/pipeline/image';
@@ -176,5 +176,30 @@ describe.skipIf(!RUN || !existsSync(join(FIX, 'manifest.json')))('golden pipelin
     await enqueue({ userId: user, bookId: book, type: 'render_export', payload: { exportId: again } });
     await drain(deps(), { workerId: 'test', log });
     expect((await one('select storage_path from public.exports where id = $1', [again])).storage_path).toBe(pdf.storage_path);
+  });
+
+  it('serverless time budget: a job that runs out of time yields, is re-queued without losing an attempt, and resumes', async () => {
+    const other = await createBook(user, { title: 'Yield test' });
+    const batch = await createBatch(user, other, 1);
+    const path = `${user}/${other}/${batch}/0-text.pdf`;
+    await storage.upload('sources', path, readFileSync(join(FIX, 'text.pdf')), 'application/pdf');
+    await query(`insert into public.source_files (user_id, book_id, batch_id, storage_path, original_name, kind) values ($1,$2,$3,$4,'text.pdf','pdf')`,
+      [user, other, batch, path]);
+    const id = (await enqueue({ userId: user, bookId: other, type: 'ingest_batch', payload: { batchId: batch } }))!;
+
+    const [job] = (await claimJobs('lambda', 10, 330)).filter((j) => j.id === id);
+    // 20 s left: below ingest's 45 s checkpoint → yield before touching the file.
+    expect(await executeJob(job!, deps(), { workerId: 'lambda', deadline: Date.now() + 20_000, log })).toBe('yielded');
+    expect(await one('select status, attempts from public.jobs where id = $1', [id])).toMatchObject({ status: 'queued', attempts: 0 });
+    expect((await one('select count(*)::int n from public.pages where batch_id = $1', [batch])).n).toBe(0);
+
+    // A run with too little time left claims nothing and reports that work remains.
+    expect(await runUntil(deps(), { workerId: 'lambda', deadline: Date.now() + 60_000, claimMinMs: 120_000, log }))
+      .toEqual({ ran: 0, moreWork: true });
+
+    // A normal run finishes the whole pipeline for this batch.
+    const r = await runUntil(deps(), { workerId: 'lambda', deadline: Date.now() + 600_000, claimMinMs: 1_000, lanes: 3, log });
+    expect(r.ran).toBeGreaterThan(3);
+    expect((await one('select status from public.batches where id = $1', [batch])).status).toBe('done');
   });
 });

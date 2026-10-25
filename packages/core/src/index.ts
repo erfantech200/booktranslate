@@ -15,4 +15,4 @@ export { renderPdf, closeBrowser } from './render/pdf';
 export { renderEpub } from './render/epub';
 export { orderPages, stitch, qualityWarnings } from './pipeline/assemble';
 export { chunkBlocks } from './pipeline/translate';
-export { runAvailable, executeJob, drain } from './runner';
+export { runAvailable, runUntil, executeJob, drain } from './runner';

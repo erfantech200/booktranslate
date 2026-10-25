@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { BookSettings, ExportOptions, GLOSSARY_KINDS } from '@bookbridge/core/shared';
+import { kickWorker } from '@/lib/kick';
 import { supabaseServer } from '@/lib/supabase/server';
 
 // All writes run as the signed-in user; RLS decides what is allowed. Inputs are validated here
@@ -93,6 +94,7 @@ async function enqueue(sb: Awaited<ReturnType<typeof supabaseServer>>, userId: s
   const { error } = await sb.from('jobs').insert({ user_id: userId, book_id: bookId, type, payload, dedupe_key: dedupeKey ?? null });
   // 23505 = an identical job is already queued/running: that's fine.
   if (error && error.code !== '23505') throw new Error(error.message);
+  await kickWorker();
 }
 
 /** Re-run translation for the book: only blocks whose hash changed (glossary/settings edits) are sent. */
@@ -122,6 +124,7 @@ export async function resumePaused(bookId: string) {
   const { sb } = await sbUser();
   const { error } = await sb.rpc('resume_paused_jobs', { p_book_id: bookId });
   if (error) throw new Error(error.message);
+  await kickWorker();
   revalidatePath('/', 'layout');
 }
 
@@ -132,6 +135,12 @@ export async function setMonthlyBudget(form: FormData) {
   const { error } = await sb.from('user_settings').upsert({ user_id: user.id, monthly_budget_usd: value });
   if (error) throw new Error(error.message);
   revalidatePath('/', 'layout');
+}
+
+/** Called by the uploader after it queues a batch. */
+export async function startWorker() {
+  await sbUser();
+  await kickWorker();
 }
 
 export async function signOut() {

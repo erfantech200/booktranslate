@@ -6,7 +6,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp, { type Sharp } from 'sharp';
-import { chromium } from 'playwright';
+import { chromium } from 'playwright-core';
 import { fontDataUrl, FONT_FILES } from '../src/render/fonts';
 import { FIXTURE_PAGES, type FixturePage } from '../test/fixtures/lanternKeeper';
 

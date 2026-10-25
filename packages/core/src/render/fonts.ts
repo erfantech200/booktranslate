@@ -1,11 +1,11 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
+import { corePath } from '../assets';
 
 // Vendored OFL fonts (see scripts/vendor-fonts.ts). Each script subset gets its own family name
 // so per-glyph fallback works through the font-family stack without unicode-range bookkeeping.
 
-export const FONTS_DIR = process.env.FONTS_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'assets', 'fonts');
+const fontsDir = () => process.env.FONTS_DIR ?? corePath('assets', 'fonts');
 
 export interface FontFile {
   family: string;
@@ -23,7 +23,7 @@ export const FONT_FILES: FontFile[] = [400, 700].flatMap((w) => [
   { family: 'BB Serif', file: `NotoSerif-latin-${w}-italic.woff2`, weight: w, style: 'italic' },
 ] as FontFile[]);
 
-export const fontBytes = (f: FontFile) => readFileSync(join(FONTS_DIR, f.file));
+export const fontBytes = (f: FontFile) => readFileSync(join(fontsDir(), f.file));
 
 /** @font-face rules. `src` is a data: URL (PDF) or a relative path (EPUB). */
 export function fontFaceCss(srcFor: (f: FontFile) => string): string {

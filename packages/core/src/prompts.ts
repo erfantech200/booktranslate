@@ -1,13 +1,13 @@
 import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
+import { corePath } from './assets';
 import { languageName, type BookSettings } from './types';
 
 // Prompts are versioned files in packages/core/prompts/. The version is part of every content
 // hash, so editing a prompt and bumping its version re-runs exactly the affected stage.
 
-const PROMPTS_DIR = process.env.PROMPTS_DIR
-  ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'prompts');
+// Resolved lazily: inside a bundled Vercel function the path is only known at runtime.
+const promptsDir = () => process.env.PROMPTS_DIR ?? corePath('prompts');
 
 export const PROMPT_VERSIONS = {
   ocr: 'ocr.v1',
@@ -21,7 +21,7 @@ const cache = new Map<string, string>();
 function load(name: string): string {
   let text = cache.get(name);
   if (text === undefined) {
-    text = readFileSync(join(PROMPTS_DIR, `${name}.md`), 'utf8').trim();
+    text = readFileSync(join(promptsDir(), `${name}.md`), 'utf8').trim();
     cache.set(name, text);
   }
   return text;
@@ -44,7 +44,7 @@ export function structurePrompt(sourceLang: string) {
 
 export function styleGuide(targetLang: string, s: BookSettings): string {
   const file = `style/${targetLang}.${PROMPT_VERSIONS.style}`;
-  const name = existsSync(join(PROMPTS_DIR, `${file}.md`)) ? file : `style/default.${PROMPT_VERSIONS.style}`;
+  const name = existsSync(join(promptsDir(), `${file}.md`)) ? file : `style/default.${PROMPT_VERSIONS.style}`;
   const vars: Record<string, string> = {
     target_language: languageName(targetLang),
     dialogue_register: s.dialogueRegister,

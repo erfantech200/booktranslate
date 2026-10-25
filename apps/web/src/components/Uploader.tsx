@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { estimateRun } from '@bookbridge/core/shared';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { startWorker } from '@/app/[locale]/actions';
 
 const ACCEPT = '.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf,.txt,.md,image/*,application/pdf,text/plain';
 const MAX_FILES = 50;
@@ -75,6 +76,7 @@ export function Uploader({ bookId, userId, ocrModel, translateModel }: { bookId:
         user_id: userId, book_id: bookId, type: 'ingest_batch', payload: { batchId: batch.id }, dedupe_key: `ingest_batch:${batch.id}`,
       });
       if (je && je.code !== '23505') throw je;
+      await startWorker();
       setFiles([]);
       setProgress(null);
       window.dispatchEvent(new Event('bookbridge:refresh'));
