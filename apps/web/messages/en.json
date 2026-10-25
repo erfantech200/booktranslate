@@ -16,7 +16,18 @@
     "email": "Email",
     "password": "Password",
     "signIn": "Sign in",
-    "wrongCredentials": "Wrong email or password."
+    "wrongCredentials": "Wrong email or password.",
+    "forgot": "Forgot password?",
+    "sendReset": "Send reset link",
+    "resetSent": "If this email has an account, a password reset link has been sent. Check your inbox.",
+    "backToSignIn": "Back to sign in",
+    "linkExpired": "This link is invalid or has expired. Request a new reset link.",
+    "newPasswordTitle": "Choose a new password",
+    "newPassword": "New password",
+    "confirmPassword": "Repeat password",
+    "savePassword": "Save password and sign in",
+    "passwordTooShort": "The password must be at least 8 characters.",
+    "passwordMismatch": "The two passwords do not match."
   },
   "library": {
     "title": "Library",
