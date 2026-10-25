@@ -1,4 +1,4 @@
-import { chromium, type Browser } from 'playwright-core';
+import type { Browser } from 'playwright-core';
 import { pageSizes, type PageSizeKey } from '../config';
 import { toPersianDigits } from '../lint/fa';
 import { buildDocument, escapeXml, formatNum, type BuiltDocument, type RenderBook } from './document';
@@ -174,6 +174,8 @@ async function headingPages(pdf: Buffer, doc: BuiltDocument): Promise<Map<string
  * @sparticuz/chromium. Elsewhere (Docker worker, local dev, tests) use Playwright's browser.
  */
 async function launch(): Promise<Browser> {
+  // Loaded on first use, so OCR/translation never depend on the browser package being loadable.
+  const { chromium } = await import('playwright-core');
   const serverless = !!process.env.VERCEL || process.env.CHROMIUM_PACK === 'sparticuz';
   if (!serverless) return chromium.launch({ args: ['--font-render-hinting=none'] });
   const { default: slim } = await import('@sparticuz/chromium');

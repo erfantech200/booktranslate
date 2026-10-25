@@ -91,6 +91,10 @@ supabase/migrations/          SQL, RLS on every table
   `serverExternalPackages`, data files go in `outputFileTracingIncludes`, musl builds are excluded
   (`apps/web/next.config.ts`). Check the size of `.next/server/app/api/worker/run/route.js.nft.json`
   after adding dependencies.
+- The tracer only sees static `require`/`import`. Files a package reads through computed paths
+  (e.g. playwright-core's `browsers.json`) must be listed in `outputFileTracingIncludes`, or the
+  worker crashes on Vercel while working locally. Heavy optional modules (playwright-core) are
+  imported lazily so a render problem can't stop OCR/translation.
 - Turbopack's file tracer crashes on path expressions that statically resolve to a directory
   (`join(process.cwd(), 'dir')`, `import.meta.url` + `'..'`). Runtime asset paths go through
   `packages/core/src/assets.ts`.

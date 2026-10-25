@@ -35,6 +35,10 @@ const config: NextConfig = {
       '../../packages/core/prompts/**/*',
       '../../packages/core/assets/fonts/**/*',
       './node_modules/@sparticuz/chromium/bin/**/*',
+      // playwright-core reads these through computed paths the tracer cannot follow.
+      './node_modules/playwright-core/browsers.json',
+      './node_modules/playwright-core/package.json',
+      './node_modules/playwright-core/lib/**/*',
       './node_modules/pdfjs-dist/standard_fonts/**/*',
       './node_modules/pdfjs-dist/cmaps/**/*',
     ],
