@@ -13,3 +13,4 @@ fixtures/out/
 next-env.d.ts
 *.tsbuildinfo
 fixtures/real/
+apps/web/public/pdfjs/

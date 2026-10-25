@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import type { BookStatus } from '@/lib/data';
 
 // Status family → tag colour. The tag text always names the state; colour only groups them.
@@ -142,9 +143,12 @@ export function LiveBook({ initial, uploader, exportForm }: { initial: BookStatu
                 <li key={e.id} className="flex flex-wrap items-center gap-x-2.5 gap-y-1 py-2.5">
                   <span className="font-medium" dir="ltr">{e.format.toUpperCase()}</span>
                   {e.options?.pageSize && <span className="text-muted" dir="ltr">{e.options.pageSize}</span>}
-                  {e.status === 'done'
-                    ? <a className="btn-quiet ms-auto" href={`/api/exports/${e.id}/download`}>{t('download')}</a>
-                    : <span className={`tag ms-auto ${TAG[e.status] ?? 'tag-idle'}`}>{ts(e.status as any)}</span>}
+                  {e.status === 'done' ? (
+                    <span className="ms-auto flex gap-4">
+                      <Link className="btn-quiet" href={`/books/${s.book.id}/exports/${e.id}`}>{t('preview')}</Link>
+                      <a className="btn-quiet" href={`/api/exports/${e.id}/download`}>{t('download')}</a>
+                    </span>
+                  ) : <span className={`tag ms-auto ${TAG[e.status] ?? 'tag-idle'}`}>{ts(e.status as any)}</span>}
                   {e.error && <span className="w-full text-xs text-anar">{e.error}</span>}
                 </li>
               ))}

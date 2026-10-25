@@ -81,3 +81,20 @@
 .logo-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: logo-draw 1.4s 0.3s cubic-bezier(.6,0,.2,1) forwards; }
 @keyframes logo-draw { to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { .logo-draw { animation: none; stroke-dashoffset: 0; } }
+
+/* EPUB preview: the book's text in the reading face, one section per chapter file. */
+@layer components {
+  .epub-preview { font-family: var(--font-read); font-size: 1.0625rem; line-height: 2.1; }
+  .epub-preview > section + section { @apply mt-10 border-t border-line pt-10; }
+  .epub-preview :is(h1, h2, h3) { @apply mb-4 font-display font-bold leading-snug text-lajvard; }
+  .epub-preview h1 { @apply text-2xl; }
+  .epub-preview h2 { @apply text-xl; }
+  .epub-preview h3 { @apply text-lg; }
+  .epub-preview p { @apply mb-3; }
+  .epub-preview :is(ol, ul) { @apply mb-3 ps-6; }
+  .epub-preview ol { list-style: decimal; }
+  .epub-preview ul { list-style: disc; }
+  .epub-preview [data-note] { @apply text-[0.875rem] leading-7 text-muted; }
+  .epub-preview blockquote { @apply my-4 border-s-2 border-line ps-4; }
+  .epub-preview hr { @apply my-6 border-line; }
+}

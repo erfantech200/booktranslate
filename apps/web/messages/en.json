@@ -83,7 +83,8 @@
     "pagesCount": "{done} of {total} pages translated",
     "back": "Back to book",
     "filesChosen": "{n} files chosen",
-    "pagesHeading": "Batches and pages"
+    "pagesHeading": "Batches and pages",
+    "preview": "Preview"
   },
   "status": {
     "uploaded": "Uploaded",
@@ -174,5 +175,16 @@
     "save": "Save",
     "pricesNote": "Costs are computed from each call's reported usage and the prices config.",
     "none": "Nothing spent this month yet."
+  },
+  "preview": {
+    "titlePdf": "PDF preview",
+    "titleEpub": "EPUB preview",
+    "pages": "{n} pages",
+    "size": "{mb} MB",
+    "download": "Download file",
+    "loading": "Preparing the preview…",
+    "failed": "The preview could not be opened. Reload the page or download the file.",
+    "pageOf": "Page {n} of {total}",
+    "epubNote": "An EPUB has no fixed pages: each reader app lays out the text with its own page size and font. Here you see the text and the chapter order."
   }
 }
