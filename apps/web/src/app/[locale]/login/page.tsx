@@ -1,5 +1,5 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { GoogleSignIn } from './GoogleSignIn';
+import { PasswordSignIn } from './PasswordSignIn';
 
 export default async function LoginPage({ params, searchParams }: {
   params: Promise<{ locale: string }>;
@@ -19,7 +19,7 @@ export default async function LoginPage({ params, searchParams }: {
       {error && (
         <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error === 'not_allowed' ? t('notAllowed') : t('error')}</p>
       )}
-      <GoogleSignIn label={t('google')} />
+      <PasswordSignIn />
     </main>
   );
 }

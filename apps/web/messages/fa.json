@@ -1,11 +1,22 @@
 {
-  "app": { "name": "پل کتاب", "tagline": "ترجمهٔ کتاب از عکس صفحه‌ها" },
-  "nav": { "library": "کتابخانه", "usage": "هزینه‌ها", "signOut": "خروج", "language": "English" },
+  "app": {
+    "name": "پل کتاب",
+    "tagline": "ترجمهٔ کتاب از عکس صفحه‌ها"
+  },
+  "nav": {
+    "library": "کتابخانه",
+    "usage": "هزینه‌ها",
+    "signOut": "خروج",
+    "language": "English"
+  },
   "login": {
     "title": "ورود",
-    "google": "ورود با گوگل",
     "notAllowed": "این حساب اجازهٔ دسترسی ندارد.",
-    "error": "ورود ناموفق بود. دوباره تلاش کنید."
+    "error": "ورود ناموفق بود. دوباره تلاش کنید.",
+    "email": "ایمیل",
+    "password": "رمز عبور",
+    "signIn": "ورود",
+    "wrongCredentials": "ایمیل یا رمز عبور درست نیست."
   },
   "library": {
     "title": "کتابخانه",
@@ -50,13 +61,30 @@
     "unnumbered": "بی‌شماره"
   },
   "status": {
-    "uploaded": "بارگذاری شد", "normalizing": "آماده‌سازی", "queued": "در صف", "extracting": "خواندن متن",
-    "extracted": "متن خوانده شد", "split": "دو صفحه جدا شد", "translating": "در حال ترجمه", "translated": "ترجمه شد",
-    "needs_review": "نیاز به بازبینی", "skipped": "بدون متن", "error": "خطا",
-    "uploading": "در حال بارگذاری", "processing": "در حال پردازش", "done": "تمام شد", "paused": "متوقف",
+    "uploaded": "بارگذاری شد",
+    "normalizing": "آماده‌سازی",
+    "queued": "در صف",
+    "extracting": "خواندن متن",
+    "extracted": "متن خوانده شد",
+    "split": "دو صفحه جدا شد",
+    "translating": "در حال ترجمه",
+    "translated": "ترجمه شد",
+    "needs_review": "نیاز به بازبینی",
+    "skipped": "بدون متن",
+    "error": "خطا",
+    "uploading": "در حال بارگذاری",
+    "processing": "در حال پردازش",
+    "done": "تمام شد",
+    "paused": "متوقف",
     "rendering": "در حال ساخت"
   },
-  "stage": { "ingest": "آماده‌سازی تصاویر", "extract": "خواندن متن صفحه‌ها", "assemble": "مرتب‌سازی و پیوند پاراگراف‌ها", "glossary": "ساختن واژه‌نامه", "translate": "ترجمه" },
+  "stage": {
+    "ingest": "آماده‌سازی تصاویر",
+    "extract": "خواندن متن صفحه‌ها",
+    "assemble": "مرتب‌سازی و پیوند پاراگراف‌ها",
+    "glossary": "ساختن واژه‌نامه",
+    "translate": "ترجمه"
+  },
   "glossary": {
     "title": "واژه‌نامه",
     "brief": "شناسنامهٔ کتاب",
@@ -70,7 +98,13 @@
     "delete": "حذف",
     "apply": "اعمال تغییرات واژه‌نامه (ترجمهٔ دوبارهٔ بندهای مربوط)",
     "empty": "واژه‌نامه پس از نخستین نوبت ساخته می‌شود.",
-    "kinds": { "character": "شخصیت", "place": "مکان", "organization": "سازمان", "term": "اصطلاح", "other": "دیگر" }
+    "kinds": {
+      "character": "شخصیت",
+      "place": "مکان",
+      "organization": "سازمان",
+      "term": "اصطلاح",
+      "other": "دیگر"
+    }
   },
   "settings": {
     "title": "تنظیمات کتاب",
@@ -90,13 +124,27 @@
     "budget": "سقف هزینهٔ این کتاب (دلار)",
     "save": "ذخیرهٔ تنظیمات"
   },
-  "review": { "title": "بازبینی", "photo": "عکس صفحه", "source": "متن خوانده‌شده", "translation": "ترجمه", "flags": "علامت‌ها", "choose": "یک صفحه را انتخاب کنید" },
+  "review": {
+    "title": "بازبینی",
+    "photo": "عکس صفحه",
+    "source": "متن خوانده‌شده",
+    "translation": "ترجمه",
+    "flags": "علامت‌ها",
+    "choose": "یک صفحه را انتخاب کنید"
+  },
   "usage": {
     "title": "هزینه‌ها",
     "thisMonth": "این ماه",
     "byBook": "به تفکیک کتاب",
     "byModel": "به تفکیک مرحله و مدل",
-    "stage": "مرحله", "model": "مدل", "calls": "درخواست", "input": "ورودی", "cached": "کش‌شده", "output": "خروجی", "reasoning": "استدلال", "cost": "هزینه",
+    "stage": "مرحله",
+    "model": "مدل",
+    "calls": "درخواست",
+    "input": "ورودی",
+    "cached": "کش‌شده",
+    "output": "خروجی",
+    "reasoning": "استدلال",
+    "cost": "هزینه",
     "monthlyBudget": "سقف ماهانه (دلار)",
     "save": "ذخیره",
     "pricesNote": "هزینه‌ها از روی مصرف واقعی هر درخواست و جدول قیمت‌ها حساب می‌شوند."

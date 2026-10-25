@@ -14,7 +14,8 @@ behind RLS so it can go multi-user later.
 - `packages/core`: types (zod), DB access (`pg`), queue, OpenAI client, prompts, pipeline stages,
   Persian linter, renderers (HTML→PDF, EPUB). Used by both apps. Web imports only the client-safe
   entry `@bookbridge/core/shared`.
-- Supabase: Postgres, private Storage buckets (`sources`, `pages`, `exports`), Google OAuth.
+- Supabase: Postgres, private Storage buckets (`sources`, `pages`, `exports`), email + password auth
+  (accounts created by the owner, public sign-up off, `app_allowlist` checked by RLS and the login page).
 - OpenAI: official `openai` SDK, Responses API, Structured Outputs (`zodTextFormat`) for **every** call.
 
 ## Commands

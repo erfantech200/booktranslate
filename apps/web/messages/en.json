@@ -1,11 +1,22 @@
 {
-  "app": { "name": "Bookbridge", "tagline": "Translate books from photos of their pages" },
-  "nav": { "library": "Library", "usage": "Usage & costs", "signOut": "Sign out", "language": "فارسی" },
+  "app": {
+    "name": "Bookbridge",
+    "tagline": "Translate books from photos of their pages"
+  },
+  "nav": {
+    "library": "Library",
+    "usage": "Usage & costs",
+    "signOut": "Sign out",
+    "language": "فارسی"
+  },
   "login": {
     "title": "Sign in",
-    "google": "Continue with Google",
     "notAllowed": "This account is not on the allowlist.",
-    "error": "Sign-in failed. Please try again."
+    "error": "Sign-in failed. Please try again.",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "wrongCredentials": "Wrong email or password."
   },
   "library": {
     "title": "Library",
@@ -50,13 +61,30 @@
     "unnumbered": "unnumbered"
   },
   "status": {
-    "uploaded": "Uploaded", "normalizing": "Preparing", "queued": "Queued", "extracting": "Reading",
-    "extracted": "Read", "split": "Spread split", "translating": "Translating", "translated": "Translated",
-    "needs_review": "Needs review", "skipped": "No text", "error": "Error",
-    "uploading": "Uploading", "processing": "Processing", "done": "Done", "paused": "Paused",
+    "uploaded": "Uploaded",
+    "normalizing": "Preparing",
+    "queued": "Queued",
+    "extracting": "Reading",
+    "extracted": "Read",
+    "split": "Spread split",
+    "translating": "Translating",
+    "translated": "Translated",
+    "needs_review": "Needs review",
+    "skipped": "No text",
+    "error": "Error",
+    "uploading": "Uploading",
+    "processing": "Processing",
+    "done": "Done",
+    "paused": "Paused",
     "rendering": "Rendering"
   },
-  "stage": { "ingest": "Preparing images", "extract": "Reading pages", "assemble": "Ordering & stitching", "glossary": "Building glossary", "translate": "Translating" },
+  "stage": {
+    "ingest": "Preparing images",
+    "extract": "Reading pages",
+    "assemble": "Ordering & stitching",
+    "glossary": "Building glossary",
+    "translate": "Translating"
+  },
   "glossary": {
     "title": "Glossary",
     "brief": "Book brief",
@@ -70,7 +98,13 @@
     "delete": "Delete",
     "apply": "Apply glossary changes (retranslate affected paragraphs)",
     "empty": "The glossary is built after the first batch.",
-    "kinds": { "character": "Character", "place": "Place", "organization": "Organization", "term": "Term", "other": "Other" }
+    "kinds": {
+      "character": "Character",
+      "place": "Place",
+      "organization": "Organization",
+      "term": "Term",
+      "other": "Other"
+    }
   },
   "settings": {
     "title": "Book settings",
@@ -90,13 +124,27 @@
     "budget": "Budget cap for this book (USD)",
     "save": "Save settings"
   },
-  "review": { "title": "Review", "photo": "Page photo", "source": "Extracted text", "translation": "Translation", "flags": "Flags", "choose": "Pick a page" },
+  "review": {
+    "title": "Review",
+    "photo": "Page photo",
+    "source": "Extracted text",
+    "translation": "Translation",
+    "flags": "Flags",
+    "choose": "Pick a page"
+  },
   "usage": {
     "title": "Usage & costs",
     "thisMonth": "This month",
     "byBook": "By book",
     "byModel": "By stage and model",
-    "stage": "Stage", "model": "Model", "calls": "Calls", "input": "Input", "cached": "Cached", "output": "Output", "reasoning": "Reasoning", "cost": "Cost",
+    "stage": "Stage",
+    "model": "Model",
+    "calls": "Calls",
+    "input": "Input",
+    "cached": "Cached",
+    "output": "Output",
+    "reasoning": "Reasoning",
+    "cost": "Cost",
     "monthlyBudget": "Monthly cap (USD)",
     "save": "Save",
     "pricesNote": "Costs are computed from each call's reported usage and the prices config."

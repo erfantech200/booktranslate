@@ -47,22 +47,24 @@ pnpm typecheck
 
 1. **Supabase project**
    - Apply the migrations: `supabase db push` (or paste `supabase/migrations/*.sql` into the SQL editor, in order).
-   - Add your email to the allowlist (RLS and the OAuth callback both check it):
+   - Authentication → Sign In / Providers: keep **Email** enabled and turn **off** "Allow new users to sign up".
+   - Authentication → Users → **Add user → Create new user** for each team member (email + password, tick
+     "Auto Confirm User").
+   - Allow those emails (RLS and the login page both check this list):
      ```sql
-     insert into public.app_allowlist (email) values (lower('you@example.com'));
+     insert into public.app_allowlist (email) values
+       (lower('you@example.com')), (lower('teammate@example.com'));
      ```
-   - Auth → Providers → Google: enable it and add your Google OAuth client ID and secret.
-   - Auth → URL configuration: add `https://YOUR-APP.vercel.app/auth/callback` (and `http://localhost:3000/auth/callback`) to the redirect URLs.
 2. **Web (Vercel)**: set the root directory to `apps/web`. Env: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 3. **Worker (Railway or Fly.io)**: build from the repo root with `apps/worker/Dockerfile` (configs: `apps/worker/railway.json`, `apps/worker/fly.toml`). Secrets: `DATABASE_URL` (transaction pooler, port 6543), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, plus any model overrides from [`.env.example`](.env.example).
 
 ## Status
 
-Phase 1 is built: allowlist auth, books, uploads of photos/PDF/TXT, OCR, stitching, an editable auto-glossary, Fast translation, Persian lint, PDF (A4/A5) and EPUB, plus per-page status and cost.
+Phase 1 is built: email + password sign-in for allowlisted accounts, books, uploads of photos/PDF/TXT, OCR, stitching, an editable auto-glossary, Fast translation, Persian lint, PDF (A4/A5) and EPUB, plus per-page status and cost.
 
 Some of it has not run against live services yet, because this build environment has no OpenAI key and no Supabase project:
 - The real OpenAI calls are untested. In tests a deterministic fake stands in for the model.
-- Google sign-in is untested.
+- Sign-in against a real Supabase project is untested.
 - The Docker image was not built here.
 
 Phase 2 (reader, camera capture, blocking quality gate, Batch "Cheap" mode, bilingual, DOCX, رقعی/وزیری, model comparison) has schema and config hooks only.
