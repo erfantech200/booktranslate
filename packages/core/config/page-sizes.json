@@ -1,0 +1,7 @@
+{
+  "A4":     { "label": "A4",           "labelFa": "A4",      "widthMm": 210,   "heightMm": 297, "margins": { "top": 22, "bottom": 22, "inner": 25, "outer": 18 } },
+  "A5":     { "label": "A5",           "labelFa": "A5",      "widthMm": 148,   "heightMm": 210, "margins": { "top": 18, "bottom": 18, "inner": 20, "outer": 14 } },
+  "roqee":  { "label": "Roqee 14.5×21", "labelFa": "رقعی",   "widthMm": 145,   "heightMm": 210, "margins": { "top": 18, "bottom": 18, "inner": 20, "outer": 13 } },
+  "vaziri": { "label": "Vaziri 17×24", "labelFa": "وزیری",   "widthMm": 170,   "heightMm": 240, "margins": { "top": 20, "bottom": 20, "inner": 22, "outer": 16 } },
+  "letter": { "label": "US Letter",    "labelFa": "لتر",     "widthMm": 215.9, "heightMm": 279.4, "margins": { "top": 22, "bottom": 22, "inner": 25, "outer": 18 } }
+}

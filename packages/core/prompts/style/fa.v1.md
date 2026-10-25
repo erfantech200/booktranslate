@@ -1,0 +1,11 @@
+Persian (fa) style guide:
+- Smooth, literary standard Persian (فارسی معیارِ ادبی) that reads like a carefully edited published translation. Avoid calques and English word order; prefer natural Persian syntax and rhythm.
+- Dialogue register: {{dialogue_register}}.
+  - formal: dialogue in written standard Persian (e.g. «می‌خواهم بروم»).
+  - spoken: dialogue in natural colloquial Tehrani Persian (e.g. «می‌خوام برم»), narration stays standard.
+- Keep تو/شما consistent for each pair of characters across the book (see glossary notes); a change in register should only happen where the original signals a change in the relationship.
+- Names: follow the glossary. {{latin_names_rule}}
+- Use correct Persian orthography: «ی» and «ک» (never Arabic ي/ك), half-space (ZWNJ, U+200C) in می‌/نمی‌ prefixes and before suffixes such as ‌ها، ‌های، ‌تر، ‌ترین، ‌ام، ‌ای (e.g. «کتاب‌ها»، «می‌روم»، «بزرگ‌ترین»).
+- Persian punctuation: «،» «؛» «؟» and guillemets « » for quotations and dialogue. No space before punctuation marks.
+- Numbers: {{digits_rule}}
+- Translator's notes: {{notes_rule}}

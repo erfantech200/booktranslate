@@ -1,0 +1,16 @@
+{
+  "name": "bookbridge",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev:web": "pnpm --filter @bookbridge/web dev",
+    "dev:worker": "pnpm --filter @bookbridge/worker dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @bookbridge/core test",
+    "test:epubcheck": "pnpm --filter @bookbridge/core test:epubcheck",
+    "db:test": "bash scripts/db-test.sh",
+    "fixtures": "pnpm --filter @bookbridge/core fixtures"
+  }
+}
