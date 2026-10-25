@@ -50,7 +50,7 @@ export class LocalStorage implements Storage {
     if (!full.startsWith(resolve(this.root, bucket))) throw new Error('path traversal');
     return full;
   }
-  async upload(bucket: Bucket, path: string, data: Buffer) {
+  async upload(bucket: Bucket, path: string, data: Buffer, _contentType?: string) {
     const f = this.p(bucket, path);
     await mkdir(dirname(f), { recursive: true });
     await writeFile(f, data);

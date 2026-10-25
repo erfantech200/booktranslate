@@ -42,8 +42,10 @@ export async function glossaryBatch(ctx: JobContext, batchId: string) {
     [book.id],
   );
   const excerpt = buildExcerpt(texts);
+  // Existing terms are deliberately not part of the hash: a re-run on the same text must not
+  // call the model again just because the previous run added terms.
   const hash = hashOf({ excerpt, model: sm.model, effort: sm.effort, prompt: PROMPT_VERSIONS.glossary,
-    existing: existing.map((e) => e.source_term.toLowerCase()), settings: [settings.dialogueRegister] });
+    settings: [settings.dialogueRegister] });
 
   const current = await one<{ glossary_hash: string | null }>('select glossary_hash from public.batches where id = $1', [batch.id]);
   if (current.glossary_hash !== hash && excerpt.trim()) {

@@ -13,6 +13,7 @@ export interface Job {
   max_attempts: number;
   run_after: Date;
   locked_until: Date | null;
+  locked_by: string | null;
 }
 
 export interface EnqueueOpts {

@@ -1,6 +1,8 @@
 import { maybeOne, query } from './db/pool.js';
 import { BudgetExceededError, type CallContext, type CallHooks, type UsageRecord } from './openai/structured.js';
 
+const int = (n: number) => (Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0);
+
 /** DB-backed hooks: per-book and monthly budget caps + usage_log inserts. */
 export const dbCallHooks: CallHooks = {
   async checkBudget(ctx: CallContext) {
@@ -36,7 +38,7 @@ export const dbCallHooks: CallHooks = {
           cache_write_tokens, output_tokens, reasoning_tokens, cost_usd, ok, request_id)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
       [r.userId, r.bookId ?? null, r.batchId ?? null, r.pageId ?? null, r.jobId ?? null, r.stage, r.model,
-       r.mode, r.inputTokens, r.cachedTokens, r.cacheWriteTokens, r.outputTokens, r.reasoningTokens,
+       r.mode, int(r.inputTokens), int(r.cachedTokens), int(r.cacheWriteTokens), int(r.outputTokens), int(r.reasoningTokens),
        r.costUsd, r.ok, r.requestId],
     );
   },
