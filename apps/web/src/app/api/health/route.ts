@@ -24,17 +24,17 @@ export async function GET(req: NextRequest) {
   // the site actually uses (a variable added later only takes effect after a redeploy).
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').trim();
   const anon = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '').trim();
-  const service = env('SUPABASE_SERVICE_ROLE_KEY');
+  const service = env('SUPABASE_SERVICE_ROLE_KEY') || env('SUPABASE_SECRET_KEY');
   const dbUrl = env('DATABASE_URL');
   const openai = env('OPENAI_API_KEY');
   const secret = env('CRON_SECRET');
 
   // ── Environment variables ──
-  checks.push({ name: 'NEXT_PUBLIC_SUPABASE_URL', ok: /^https:\/\/[^/\s]+\/?$/.test(url),
+  checks.push({ name: 'Supabase URL (SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL)', ok: /^https:\/\/[^/\s]+\/?$/.test(url),
     hint: 'Supabase → Project Settings → API → Project URL, e.g. https://abcd.supabase.co (nothing after it). Redeploy after changing.' });
-  checks.push({ name: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', ok: anon.length > 20,
+  checks.push({ name: 'Supabase publishable key (SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY)', ok: anon.length > 20,
     hint: 'Supabase → Project Settings → API Keys: the publishable (sb_publishable_…) or legacy "anon" key. Redeploy after changing.' });
-  checks.push({ name: 'SUPABASE_SERVICE_ROLE_KEY', ok: service.length > 20,
+  checks.push({ name: 'Supabase secret key (SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY)', ok: service.length > 20,
     hint: 'Same page: the secret (sb_secret_…) or legacy "service_role" key.' });
   checks.push({ name: 'DATABASE_URL', ok: /^postgres(ql)?:\/\//.test(dbUrl), detail: dbUrl ? (dbUrl.includes(':6543') ? 'transaction pooler (6543)' : 'not port 6543') : undefined,
     hint: 'Supabase → Connect → Transaction pooler (port 6543), with your database password filled in.' });

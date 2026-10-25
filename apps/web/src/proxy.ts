@@ -11,9 +11,9 @@ const PUBLIC = [/^\/(en\/)?login\/?$/, /^\/(fa\/)?login\/?$/];
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 function configProblem(): string | null {
-  if (!SUPABASE_URL) return 'NEXT_PUBLIC_SUPABASE_URL is not set';
-  if (!/^https:\/\/[^/\s]+\/?$/.test(SUPABASE_URL)) return 'NEXT_PUBLIC_SUPABASE_URL must look like https://xxxx.supabase.co (nothing after it)';
-  if (!SUPABASE_ANON_KEY) return 'NEXT_PUBLIC_SUPABASE_ANON_KEY is not set';
+  if (!SUPABASE_URL) return 'The Supabase URL is not set (SUPABASE_URL)';
+  if (!/^https:\/\/[^/\s]+\/?$/.test(SUPABASE_URL)) return 'SUPABASE_URL must look like https://xxxx.supabase.co (nothing after it)';
+  if (!SUPABASE_ANON_KEY) return 'The Supabase publishable key is not set (SUPABASE_PUBLISHABLE_KEY)';
   return null;
 }
 function setupPage(problem: string) {

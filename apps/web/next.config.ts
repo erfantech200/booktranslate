@@ -4,11 +4,27 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
-const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host : '*.supabase.co';
+// Accept Supabase's current names too (SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY), so the Vercel
+// variables can be named either way. Both values are public by design (RLS protects the data);
+// they are inlined into the browser bundle via `env` below. The secret key is never listed here.
+const publicSupabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
+const publicSupabaseKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
+
+let supabaseHost = '*.supabase.co';
+try {
+  if (publicSupabaseUrl) supabaseHost = new URL(publicSupabaseUrl).host;
+} catch {
+  // Malformed URL: the proxy shows a setup page explaining it.
+}
 
 const repoRoot = resolve(process.cwd(), '../..');
 
 const config: NextConfig = {
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: publicSupabaseUrl,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: publicSupabaseKey,
+  },
   transpilePackages: ['@bookbridge/core'],
   // The pipeline worker runs inside /api/worker/run. Native and large packages stay external
   // (required from node_modules at runtime) and their data files are traced into that function.

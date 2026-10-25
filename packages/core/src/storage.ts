@@ -14,8 +14,8 @@ export interface Storage {
 /** Supabase Storage with the service role (worker only). Buckets are private. */
 export class SupabaseStorage implements Storage {
   private sb: SupabaseClient;
-  constructor(url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    if (!url || !key) throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set');
+  constructor(url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY) {
+    if (!url || !key) throw new Error('Supabase URL / secret key not set (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY)');
     this.sb = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   }
   async upload(bucket: Bucket, path: string, data: Buffer, contentType: string) {

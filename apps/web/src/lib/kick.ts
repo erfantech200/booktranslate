@@ -24,7 +24,13 @@ export async function kickWorker(origin?: string): Promise<void> {
   try {
     await fetch(`${base}/api/worker/run`, {
       method: 'POST',
-      headers: { authorization: `Bearer ${secret}` },
+      headers: {
+        authorization: `Bearer ${secret}`,
+        // Vercel Deployment Protection: lets this server-to-server call through when
+        // "Protection Bypass for Automation" is enabled (Vercel provides this variable).
+        ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+          ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET } : {}),
+      },
       cache: 'no-store',
       signal: AbortSignal.timeout(8_000),
     });
