@@ -20,6 +20,8 @@ const vazirmatn = localFont({ variable: '--font-vazirmatn', display: 'swap', src
   { path: '../../fonts/vazirmatn-latin-800-normal.woff2', weight: '800' },
 ] });
 
+const TZ_SCRIPT = `try{document.cookie='tz='+encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)+';path=/;max-age=31536000;samesite=lax'}catch(e){}`;
+
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#0E1522' };
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -46,6 +48,8 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   return (
     <html lang="fa" dir="rtl" data-theme={theme} className={vazirmatn.variable}>
       <body>
+        {/* The server needs the owner's calendar date (workouts are planned per local day). */}
+        <script dangerouslySetInnerHTML={{ __html: TZ_SCRIPT }} />
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>

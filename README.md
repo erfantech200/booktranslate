@@ -14,8 +14,13 @@ translator) is [`docs/AUDIT.md`](docs/AUDIT.md). Conventions and hard rules: [`C
   - onboarding and Settings;
   - baseline progress photos;
   - daily weigh-ins with a weight chart (7-day average, plan line, trend projection).
+- **Phase 2:**
+  - an exercise library of 78 exercises with Persian coaching content (`packages/core/src/data/exercises`);
+  - a deterministic program generator: 3–6 day splits, 5-week blocks with a deload, volume and session-length fitting;
+  - gym mode (`/gym`): prefilled set logging that works offline, warm-ups, a rest timer, swaps, pain reports and PRs;
+  - double progression, stall and early-deload detection, missed-session handling, and a finish summary with a short coach comment.
 
-Phases 2–5 (see the spec) add training, nutrition, progress tracking, and the AI coach.
+Phases 3–5 (see the spec) add nutrition, progress tracking, and the AI coach.
 
 ## Repo
 
@@ -51,6 +56,9 @@ The build container cannot reach the database, so production migrations run insi
   stops at a destructive one.
 - `GET …&apply=1&confirm=<file.sql>`: also runs that destructive migration (only after the owner
   approves it).
+
+After applying, the exercise seed is synced into the `exercises` table: only changed rows are written.
+`pnpm migrate --apply` does the same locally.
 
 `/api/health?key=<CRON_SECRET>` checks the whole setup and lists table row counts.
 

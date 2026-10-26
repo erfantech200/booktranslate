@@ -77,3 +77,16 @@ describe('cost', () => {
     expect(costUsd('unknown-model', u)).toBe(0);
   });
 });
+
+describe('sessionComment', () => {
+  it('returns a Persian comment and retries an English one', async () => {
+    const { sessionComment } = await import('../src/coachText/sessionComment');
+    const h = hooks();
+    const t = scripted([{ json: { comment: 'Great session, keep going.' } }, { json: { comment: 'جلسهٔ خوبی بود؛ هفتهٔ بعد همین کنترل را نگه دار.' } }]);
+    const input = { dayName: 'تمام بدن', week: 1, deload: false, technique: true, minutes: 50, workingSets: 18, plannedSets: 19,
+      volumeKg: 4200, prs: [], skipped: [], painReported: false, exercises: [] };
+    expect(await sessionComment('u', input, { transport: t, hooks: h.hooks })).toContain('جلسه');
+    expect(h.logged.map((l) => l.feature)).toEqual(['session_comment', 'session_comment']);
+    expect(JSON.stringify(t.inputs[1])).toContain('must be in Persian');
+  });
+});
