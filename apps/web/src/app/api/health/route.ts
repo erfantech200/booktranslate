@@ -111,6 +111,19 @@ export async function GET(req: NextRequest) {
           detail: `${a.rows[0]!.n} email(s) allowed, ${u.rows[0]!.n} of them have an account`,
           hint: "insert into public.app_allowlist (email) values (lower('you@example.com')); — same emails as the accounts." });
       }
+      // Row count of every table (and file count per bucket): an inventory for migrations.
+      const counts: string[] = [];
+      for (const name of [...tables].sort()) {
+        const kind = await client.query<{ k: string }>(`select table_type as k from information_schema.tables where table_schema = 'public' and table_name = $1`, [name]);
+        if (kind.rows[0]?.k !== 'BASE TABLE') continue;
+        const n = await client.query<{ n: number }>(`select count(*)::int as n from public.${pg.escapeIdentifier(name)}`);
+        counts.push(`${name}: ${n.rows[0]!.n}`);
+      }
+      checks.push({ name: 'Table row counts', ok: null, detail: counts.join(', ') });
+      const files = await client.query<{ id: string; n: number; mb: string }>(
+        `select b.id, count(o.id)::int as n, round(coalesce(sum((o.metadata->>'size')::bigint), 0) / 1e6, 1)::text as mb
+         from storage.buckets b left join storage.objects o on o.bucket_id = b.id group by b.id order by b.id`);
+      checks.push({ name: 'Storage', ok: null, detail: files.rows.map((r) => `${r.id}: ${r.n} files, ${r.mb} MB`).join(', ') });
       if (tables.has('jobs')) {
         const s = await client.query<{ status: string; n: number }>('select status, count(*)::int as n from public.jobs group by status');
         const failed = await client.query<{ type: string; last_error: string; updated_at: Date }>(
