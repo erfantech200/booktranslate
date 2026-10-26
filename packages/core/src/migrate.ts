@@ -102,11 +102,11 @@ export async function applyMigrations(o: {
     if (m.destructive && o.confirm !== m.name) {
       return { applied, stopped: { name: m.name, reason: 'destructive: needs explicit confirmation' } };
     }
-    for (const b of m.deleteBuckets) {
-      if (!o.deleteBucket) { log(`${m.name}: no storage access here, bucket ${b} left as is`); continue; }
-      log(`${m.name}: bucket ${b} ${await o.deleteBucket(b)}`);
-    }
     try {
+      for (const b of m.deleteBuckets) {
+        if (!o.deleteBucket) { log(`${m.name}: no storage access here, bucket ${b} left as is`); continue; }
+        log(`${m.name}: bucket ${b} ${await o.deleteBucket(b)}`);
+      }
       await tx(async (c) => {
         await c.query(m.sql);
         await c.query(`insert into public.schema_migrations (name, checksum) values ($1, $2)`, [m.name, m.checksum]);

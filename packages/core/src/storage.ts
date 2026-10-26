@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
+import { query } from './db/pool';
 
 // Private buckets only; files are reached through short-lived signed URLs.
 export type Bucket = string;
@@ -12,12 +13,19 @@ export interface Storage {
   signedUrl(bucket: Bucket, path: string, ttlSeconds: number, downloadName?: string): Promise<string>;
 }
 
-/** Removes a bucket with all its files (Supabase refuses direct SQL deletes on storage tables). */
+/**
+ * Removes a bucket with all its files. Supabase refuses direct SQL deletes on storage tables, and
+ * its emptyBucket call can return before the files are gone, so files are listed from
+ * storage.objects (nested paths included) and removed by name through the Storage API.
+ */
 export async function deleteBucket(sb: SupabaseClient, bucket: string): Promise<'deleted' | 'missing'> {
   const { data } = await sb.storage.getBucket(bucket);
   if (!data) return 'missing';
-  const emptied = await sb.storage.emptyBucket(bucket);
-  if (emptied.error) throw new Error(`empty bucket ${bucket}: ${emptied.error.message}`);
+  const names = (await query<{ name: string }>('select name from storage.objects where bucket_id = $1', [bucket])).map((r) => r.name);
+  for (let i = 0; i < names.length; i += 100) {
+    const { error } = await sb.storage.from(bucket).remove(names.slice(i, i + 100));
+    if (error) throw new Error(`remove files from ${bucket}: ${error.message}`);
+  }
   const removed = await sb.storage.deleteBucket(bucket);
   if (removed.error) throw new Error(`delete bucket ${bucket}: ${removed.error.message}`);
   return 'deleted';
