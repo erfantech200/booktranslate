@@ -1,21 +1,16 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { AuthFrame } from '@/components/AuthFrame';
 import { PasswordSignIn } from './PasswordSignIn';
 
-export default async function LoginPage({ params, searchParams }: {
-  params: Promise<{ locale: string }>;
-  searchParams: Promise<{ error?: string }>;
-}) {
+export default async function LoginPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const { error } = await searchParams;
-  const t = await getTranslations('login');
+  const t = await getTranslations();
   return (
-    <AuthFrame title={t('title')}>
-      {error && (
-        <p role="alert" className="note note-alert mb-5">{error === 'not_allowed' ? t('notAllowed') : t('error')}</p>
-      )}
+    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-5">
+      <p className="text-3xl font-extrabold">{t('app.name')}</p>
+      <p className="mt-1 text-muted">{t('app.tagline')}</p>
+      <h1 className="mt-10 mb-5 text-xl font-bold">{t('login.title')}</h1>
       <PasswordSignIn />
-    </AuthFrame>
+    </main>
   );
 }

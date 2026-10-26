@@ -1,108 +1,61 @@
-# Bookbridge: Claude Code context
+# Coach: Claude Code context
 
-AI book translation: phone photos / PDFs → structured blocks → Persian (first-class) or another
-target → print-ready PDF + EPUB. The full product spec is `docs/SPEC.md`; verified OpenAI facts
-are in `docs/openai-api-notes.md`. Single user (allowlist) today, but every row carries `user_id`
-behind RLS so it can go multi-user later.
+A private, single-user strength and nutrition coach for Erfan. Persian UI (RTL); code and comments
+in English. The product spec is `COACH_SPEC.md` (build phases 0–5); `docs/AUDIT.md` records what was
+removed from the previous product (Bookbridge, a book translator). Verified OpenAI facts are in
+`docs/openai-api-notes.md`.
 
 ## Stack
-- pnpm monorepo, TypeScript (strict) everywhere, Node 22.
-- `apps/web`: Next.js 16 App Router + Tailwind 4 + next-intl (fa default/RTL, en). Deploys on Vercel.
-  Pages, actions and APIs talk to Supabase **as the signed-in user** (RLS). The one exception is
-  the pipeline worker route `app/api/worker/run` (+ `lib/workerRun.ts`), which runs every stage
-  with the service role inside a 300 s Vercel function (CRON_SECRET-protected).
-- `apps/worker`: optional always-on Docker worker running the same core runner (no time budget).
-- No system binaries at runtime: PDFs via pdfjs-dist + @napi-rs/canvas, HEIC via heic-convert,
-  PDF rendering via playwright-core with @sparticuz/chromium on Vercel (full Chromium elsewhere).
-- `packages/core`: types (zod), DB access (`pg`), queue, OpenAI client, prompts, pipeline stages,
-  Persian linter, renderers (HTML→PDF, EPUB). Used by both apps. Web imports only the client-safe
-  entry `@bookbridge/core/shared`.
-- Supabase: Postgres, private Storage buckets (`sources`, `pages`, `exports`), email + password auth
-  (accounts created by the owner, public sign-up off, `app_allowlist` checked by RLS and the login page).
-- OpenAI: official `openai` SDK, Responses API, Structured Outputs (`zodTextFormat`) for **every** call.
+- pnpm monorepo, TypeScript (strict), Node 22.
+- `apps/web`: Next.js 16 App Router (Turbopack, `proxy.ts`), React 19, Tailwind 4, next-intl with the
+  single locale `fa` (no URL prefix). Deploys on Vercel (project `booktranslate`, region `syd1`).
+  Pages, actions and APIs talk to Supabase **as the signed-in user** (RLS). Exceptions, using the
+  service role / `DATABASE_URL`: the worker route `app/api/worker/run` (+ `lib/workerRun.ts`), the
+  migration runner `app/api/admin/migrate`, and the health check. All three are CRON_SECRET-protected.
+- `packages/core`: config, DB pool (`pg`), job queue + runner, OpenAI structured calls, usage/cost,
+  migration runner. Web imports only the client-safe entry `@coach/core/shared` from client code.
+- Supabase: Postgres, private Storage buckets, email + password auth for ONE owner account (sign-up
+  off, no reset-by-email).
+- OpenAI: official `openai` SDK, Responses API, Structured Outputs (`zodTextFormat`) for every
+  machine-consumed call.
 
 ## Commands
 ```bash
 pnpm install
-pnpm dev:web            # Next dev server (apps/web)
-pnpm dev:worker         # worker with tsx watch (needs DATABASE_URL etc.)
-pnpm typecheck          # tsc --noEmit across all packages
-pnpm test               # vitest: linter, chunking, ordering, stitch, structured calls, renderers
-pnpm test:epubcheck     # downloads epubcheck (GitHub releases) once, then validates the fixture EPUB
-pnpm db:test            # throwaway Postgres 16 + migrations: queue, RLS, yield/resume, golden pipeline
-pnpm fixtures           # regenerates synthetic fixture images/PDFs (fixtures/generated/)
+pnpm dev          # Next dev server (apps/web)
+pnpm typecheck    # tsc --noEmit across packages
+pnpm test         # vitest unit tests
+pnpm db:test      # throwaway Postgres 16: all migrations via the runner, then queue/RLS tests
+pnpm migrate      # runner CLI against $DATABASE_URL (--apply, --confirm=<file>)
 ```
-
-## Layout
-```
-apps/web/src/app/[locale]/…   screens (library, book, glossary, usage); app/auth/callback; app/api/*
-apps/web/src/app/api/worker/run  Vercel worker route → core runUntil()
-apps/worker/src/index.ts      optional Docker poll loop → core/pipeline handlers
-packages/core/prompts/        versioned prompt files (ocr.v1.md, translate.system.v1.md, style/fa.v1.md …)
-packages/core/config/         prices.json (USD / 1M tokens), page sizes
-packages/core/assets/fonts/   vendored OFL fonts (Noto Naskh Arabic, Vazirmatn, Noto Serif)
-packages/core/src/pipeline/   ingest → extract → assemble (order+stitch+quality) → glossary → translate → render
-packages/core/src/lint/       deterministic per-language post-processing (fa.ts)
-packages/core/src/render/     document.ts (shared book model/HTML), pdf.ts (Playwright), epub.ts (JSZip)
-supabase/migrations/          SQL, RLS on every table
-```
-
-## Pipeline & job model
-- `jobs(type, payload, status, run_after, attempts, max_attempts, locked_until)`. The worker claims
-  jobs with `SELECT … FOR UPDATE SKIP LOCKED` inside a transaction (works through the transaction
-  pooler, so no LISTEN/NOTIFY). Exponential backoff on failure. A lease (`locked_until`) + heartbeat
-  lets a crashed worker's job be re-claimed.
-- Serverless runs have a deadline: stages call `checkpoint(ctx, ms)` / check `ctx.timeLeft()` and
-  throw `JobYield` when short of time; the runner re-queues without counting an attempt. Progress
-  must already be saved when yielding (stages are hash-keyed, so the next run resumes).
-- Worker runs are started by `kickWorker()` (`apps/web/src/lib/kick.ts`) after enqueueing, by the
-  status API while a book page is open, by the run itself when work remains, and by a daily cron.
-- Job types: `ingest_batch` → `extract_page` (fan-out) → `assemble_batch` → `glossary_batch` →
-  `translate_batch` → `render_export`. Every stage is **idempotent**: re-running it skips work whose
-  content hash (`input sha256 + model + prompt version`) hasn't changed.
-- Budget caps (per book, monthly) are checked before every model call; a hit puts the job in
-  `paused` instead of failing it.
 
 ## Conventions
-- Model IDs, reasoning effort, prices and prompts are **config** (env, `config/prices.json`,
-  `prompts/*.md`). Never hardcode a model ID in logic.
-- Every model call goes through `structuredCall()` (`packages/core/src/openai/structured.ts`): it
-  sets the zod schema, validates, retries once on invalid output and then flags, and logs usage.
-  It is the only place that talks to OpenAI.
-- Blocks are the unit of truth: `blocks.source_text`, `translated_text`, `user_override`, and page
-  provenance (`page_ids[]`). Re-runs never touch `user_override`.
-- Persian lint applies only safe auto-fixes (ی/ک, ZWNJ, punctuation, digits). Everything else is a
-  flag on the block.
-- Relative imports inside `packages/core` are extensionless (`'./types'`, not `'./types.js'`):
-  Turbopack doesn't map `.js`→`.ts` for the transpiled workspace package. tsx/Vitest/Next all
-  resolve extensionless imports (`moduleResolution: Bundler`).
-- UI copy goes in `apps/web/messages/{fa,en}.json`. Use logical CSS (`ms-`/`me-`, `start`/`end`),
-  never `left`/`right`.
-- Status shown in the UI is read from the DB (pages.status, jobs, usage_log). No fake progress.
+- **Deterministic engine, LLM for language** (spec §1): every number that matters is computed in
+  code; the LLM explains, writes, picks within engine bounds, and chats.
+- All tunable coaching constants live in ONE config file, each with a one-line rationale comment.
+- Model IDs, reasoning effort, prices and prompts are config (env, `config/prices.json`). Never
+  hardcode a model ID in logic. Env: `OPENAI_TEXT_MODEL`, `OPENAI_VISION_MODEL`, `OPENAI_IMAGE_MODEL`.
+- Every model call goes through `structuredCall()` (`packages/core/src/openai/structured.ts`): zod
+  schema, validation, one corrective retry, then a friendly error; usage logged to `ai_usage` with a
+  `feature`. Calls are blocked above `OPENAI_MONTHLY_BUDGET_USD` unless `essential: true`.
+- Background work: add a handler in `packages/core/src/jobs/index.ts`; enqueue with `enqueue()`;
+  long jobs call `checkpoint()` and throw `JobYield` (progress saved first).
+- Relative imports inside `packages/core` are extensionless (Turbopack + transpiled workspace package).
+- UI copy goes in `apps/web/messages/fa.json`. Use logical CSS (`ms-`/`me-`, `start`/`end`).
+- Status shown in the UI is read from the DB. No fake progress, no fabricated "kg of muscle".
 
 ## Hard rules
 - No keys in code. `.env.local` / platform secrets only. Keep `.env.example` current.
-- All files live in private buckets behind short-lived signed URLs (≤10 min).
-- Every model call: Structured Outputs + zod. On invalid output: retry once, then flag.
-- New table ⇒ `user_id` column + RLS enabled + owner policies in the same migration.
-- Only the worker (route or Docker app) uses the service role / DATABASE_URL. Never import
-  `@bookbridge/core` (server entry) or `lib/workerRun.ts` from pages, actions or client code.
-- Keep the worker function under Vercel's 250 MB limit: native packages stay in
-  `serverExternalPackages`, data files go in `outputFileTracingIncludes`, musl builds are excluded
-  (`apps/web/next.config.ts`). Check the size of `.next/server/app/api/worker/run/route.js.nft.json`
-  after adding dependencies.
-- The tracer only sees static `require`/`import`. Files a package reads through computed paths
-  (e.g. playwright-core's `browsers.json`) must be listed in `outputFileTracingIncludes`, or the
-  worker crashes on Vercel while working locally. Heavy optional modules (playwright-core) are
-  imported lazily so a render problem can't stop OCR/translation.
-- Turbopack's file tracer crashes on path expressions that statically resolve to a directory
-  (`join(process.cwd(), 'dir')`, `import.meta.url` + `'..'`). Runtime asset paths go through
-  `packages/core/src/assets.ts`.
-- Don't bump `playwright-core` without matching the Docker base image tag (`mcr.microsoft.com/playwright:vX-noble`)
-  and checking @sparticuz/chromium still works with it (filter out `--single-process`).
-
-## Phase status
-Phase 1 (MVP) is what is built. Phase 2 items (reader, camera capture, quality-gate blocking, Batch
-"Cheap" mode, bilingual, DOCX, رقعی/وزیری, model comparison) have schema/config hooks but no UI.
-Phase 3 (public signup, quotas, Stripe, admin) is not built. Nothing should block it: no
-single-user assumptions in SQL.
+- Migrations: SQL files in `supabase/migrations/` named `YYYYMMDDHHMMSS_name.sql`, applied by the
+  runner (never edited after being applied; the health check flags changed checksums).
+  New table ⇒ `user_id` column + RLS enabled + owner policies in the same migration.
+  Destructive changes go in their own migration marked `-- @destructive`; before running one on
+  production, show the owner the table list with row counts and wait for an explicit "yes".
+- Private buckets only, short-lived signed URLs (≤10 min). Photos: strip EXIF on upload.
+- Never import `@coach/core` (server entry) or `lib/workerRun.ts` from client code.
+- Files a package reads through computed paths must be listed in `outputFileTracingIncludes`
+  (`apps/web/next.config.ts`), or the route works locally and crashes on Vercel. Turbopack's tracer
+  crashes on path expressions that statically resolve to a directory: build such paths from a
+  working directory it can't evaluate (see `migrationsDir()` in `packages/core/src/migrate.ts`).
+- Safety (spec §6): pain ≥ 4 / red flags → hard-coded stop messages, never LLM-generated. No drugs,
+  PEDs or supplements beyond creatine and protein powder.

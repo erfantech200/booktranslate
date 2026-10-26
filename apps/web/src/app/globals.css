@@ -1,100 +1,25 @@
 @import "tailwindcss";
 
-/*
- * Bookbridge design tokens. Palette from Persian manuscript and tile pigments:
- * lajvard (lapis), firoozeh (turquoise), zafaran (saffron), anar (pomegranate) on a cool paper.
- */
+/* Phase 0 shell: minimal dark tokens. The full design system arrives in Phase 1. */
 @theme {
-  --color-lajvard: #1E2F6B;
-  --color-lajvard-deep: #152252;
-  --color-lajvard-soft: #E3E8F4;
-  --color-ink: #1A1F33;
-  --color-muted: #5E6680;
-  --color-paper: #F1F3F6;
-  --color-surface: #FFFFFF;
-  --color-line: #D9DEE7;
-  --color-firoozeh: #1F8F89;
-  --color-firoozeh-ink: #146660;
-  --color-firoozeh-soft: #E0F1EF;
-  --color-zafaran: #D4921A;
-  --color-zafaran-ink: #85570A;
-  --color-zafaran-soft: #FBF0DA;
-  --color-anar: #B4363F;
-  --color-anar-soft: #F8E4E6;
-
-  --font-ui: var(--font-estedad-ar), var(--font-estedad-lat), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-kufi-ar), var(--font-kufi-lat), var(--font-estedad-ar), sans-serif;
-  --font-read: var(--font-naskh), var(--font-estedad-lat), serif;
+  --color-bg: #0B0F14;
+  --color-surface: #141A22;
+  --color-line: #263040;
+  --color-fg: #EEF2F7;
+  --color-muted: #9AA7B8;
+  --color-accent: #3DDC84;
+  --color-danger: #FF6B6B;
+  --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
-  html { background: var(--color-paper); color: var(--color-ink); }
-  body { min-height: 100dvh; font-family: var(--font-ui); font-size: 1rem; line-height: 1.75; -webkit-font-smoothing: antialiased; }
-  :focus-visible { outline: 2px solid var(--color-zafaran); outline-offset: 2px; border-radius: 4px; }
-  ::selection { background: var(--color-zafaran-soft); }
+  html { background: var(--color-bg); color: var(--color-fg); color-scheme: dark; }
+  body { min-height: 100dvh; font-family: var(--font-sans); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 6px; }
 }
 
 @layer components {
-  /* Buttons: one primary (lapis), one outlined, one quiet text action. */
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-[10px] bg-lajvard px-4 py-2.5 text-[0.9375rem] font-medium text-paper transition-colors hover:bg-lajvard-deep disabled:cursor-not-allowed disabled:opacity-50; }
-  .btn-line { @apply inline-flex items-center justify-center gap-2 rounded-[10px] border border-line bg-surface px-3.5 py-2 text-[0.9375rem] font-medium text-ink transition-colors hover:border-lajvard hover:text-lajvard; }
-  .btn-quiet { @apply inline-flex items-center gap-1.5 text-[0.9375rem] font-medium text-lajvard underline-offset-4 hover:underline; }
-
-  .field { @apply block; }
-  .field-label { @apply mb-1.5 block text-sm font-medium text-ink; }
-  .field-hint { @apply mt-1 block text-[0.8125rem] text-muted; }
-  .input { @apply w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-[0.9375rem] text-ink placeholder:text-muted/70 focus:border-lajvard focus:outline-none focus:ring-2 focus:ring-lajvard/15; }
-
-  /* Status tags: colour = state family, text always says the state. */
-  .tag { @apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.75rem] font-medium leading-5 whitespace-nowrap; }
-  .tag::before { content: ""; @apply h-1.5 w-1.5 rounded-full bg-current; }
-  .tag-idle { @apply bg-lajvard-soft text-lajvard; }
-  .tag-work { @apply bg-zafaran-soft text-zafaran-ink; }
-  .tag-done { @apply bg-firoozeh-soft text-firoozeh-ink; }
-  .tag-alert { @apply bg-anar-soft text-anar; }
-
-  /* A surface is used only for content that is a "sheet": forms and lists, not decoration. */
-  .sheet { @apply rounded-xl border border-line bg-surface; }
-
-  /* Book spine rail: the navigation is the spine of the book you are holding. */
-  .spine-band {
-    background-image: linear-gradient(var(--color-zafaran), var(--color-zafaran)), linear-gradient(var(--color-zafaran), var(--color-zafaran));
-    background-position: top, bottom; background-size: 100% 2px; background-repeat: no-repeat;
-  }
-
-  .reading { font-family: var(--font-read); line-height: 2; }
-
-  /* Inline notices: a coloured start edge says what kind of message it is. */
-  .note { @apply rounded-lg border-s-4 px-3.5 py-2.5 text-sm leading-6; }
-  .note-alert { @apply border-anar bg-anar-soft text-anar; }
-  .note-work { @apply border-zafaran bg-zafaran-soft text-zafaran-ink; }
-  .note-done { @apply border-firoozeh bg-firoozeh-soft text-firoozeh-ink; }
-
-  input[type="checkbox"], input[type="radio"] { accent-color: var(--color-lajvard); width: 1rem; height: 1rem; }
-  .check { @apply flex items-center gap-2.5 text-[0.9375rem]; }
-
-  /* Section headings inside sheets. */
-  .sheet-title { @apply font-display text-lg font-bold text-lajvard; }
-}
-
-/* The one motion moment: the arch's reflection draws in on the sign-in screen. */
-.logo-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: logo-draw 1.4s 0.3s cubic-bezier(.6,0,.2,1) forwards; }
-@keyframes logo-draw { to { stroke-dashoffset: 0; } }
-@media (prefers-reduced-motion: reduce) { .logo-draw { animation: none; stroke-dashoffset: 0; } }
-
-/* EPUB preview: the book's text in the reading face, one section per chapter file. */
-@layer components {
-  .epub-preview { font-family: var(--font-read); font-size: 1.0625rem; line-height: 2.1; }
-  .epub-preview > section + section { @apply mt-10 border-t border-line pt-10; }
-  .epub-preview :is(h1, h2, h3) { @apply mb-4 font-display font-bold leading-snug text-lajvard; }
-  .epub-preview h1 { @apply text-2xl; }
-  .epub-preview h2 { @apply text-xl; }
-  .epub-preview h3 { @apply text-lg; }
-  .epub-preview p { @apply mb-3; }
-  .epub-preview :is(ol, ul) { @apply mb-3 ps-6; }
-  .epub-preview ol { list-style: decimal; }
-  .epub-preview ul { list-style: disc; }
-  .epub-preview [data-note] { @apply text-[0.875rem] leading-7 text-muted; }
-  .epub-preview blockquote { @apply my-4 border-s-2 border-line ps-4; }
-  .epub-preview hr { @apply my-6 border-line; }
+  .btn { @apply inline-flex items-center justify-center rounded-xl bg-accent px-4 py-3 font-bold text-bg transition-opacity hover:opacity-90 disabled:opacity-50; }
+  .input { @apply w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-fg placeholder:text-muted focus:border-accent focus:outline-none; }
+  .label { @apply mb-1.5 block text-sm text-muted; }
 }

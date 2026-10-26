@@ -6,17 +6,16 @@ Node SDK, v7.43.0** (its type definitions are generated from OpenAI's OpenAPI sp
 with prices cross-checked against third-party reports. Re-check anything marked
 *unverified* on the pricing page before relying on cost numbers.
 
-## Model IDs (from `openai/resources/shared.d.ts`, `ChatModel` union)
+## Model IDs (from `openai/resources/shared.d.ts` and `resources/images.d.ts`)
 
 | Role | Env var | Default | Status |
 |---|---|---|---|
-| OCR / page extraction (vision) | `OCR_MODEL` | `gpt-6-luna` | in SDK |
-| Structuring pass (text-layer pages) | `STRUCTURE_MODEL` | `gpt-6-luna` | in SDK |
-| Brief + glossary | `GLOSSARY_MODEL` | `gpt-6.1-sol` | in SDK |
-| Translation | `TRANSLATION_MODEL` | `gpt-6.1-sol` | in SDK |
-| Premium translation | `PREMIUM_TRANSLATION_MODEL` | `gpt-6-astra` | in SDK (bare ID, no dated snapshot) |
+| Coaching text, meal plans, chat | `OPENAI_TEXT_MODEL` | `gpt-6.1-sol` | in SDK, answers on the production key |
+| Meal photos (vision) | `OPENAI_VISION_MODEL` | `gpt-6-luna` | in SDK, answers on the production key |
+| Exercise illustrations | `OPENAI_IMAGE_MODEL` | `gpt-image-2.5-flare` | in SDK `ImageModel`; not yet called on the production key |
 
-`gpt-6-sol` also exists. Third-party pages call `gpt-6.1-sol` a pricing twin of `gpt-6-sol`.
+Also in the SDK: `gpt-6-sol`, `gpt-6-astra` (text); `gpt-image-2.5-sunburst`, `gpt-image-2`,
+`gpt-image-1.5`, `gpt-image-1-mini` (images).
 
 ## Responses API parameters used
 
@@ -33,8 +32,6 @@ with prices cross-checked against third-party reports. Re-check anything marked
 - Usage: `usage.input_tokens`, `usage.input_tokens_details.cached_tokens`,
   `usage.input_tokens_details.cache_write_tokens`, `usage.output_tokens`,
   `usage.output_tokens_details.reasoning_tokens`.
-- Batch API: `client.batches.create({ endpoint: '/v1/responses', input_file_id, completion_window: '24h' })`
-  (Phase 2, "Cheap" mode).
 
 ## Prices (`packages/core/config/prices.json`)
 
@@ -46,6 +43,3 @@ USD per 1M tokens. **Unverified.** The sources are TheNextWeb, llmgateway and re
 | gpt-6-luna | 0.10 | 0.01 | 0.125 | 0.50 |
 | gpt-6-sol / gpt-6.1-sol | 2.00 | 0.20 *(assumed 10%)* | 2.50 *(assumed)* | 10.00 |
 | gpt-6-astra | 10.00 | 1.00 | 12.50 *(assumed)* | 50.00 |
-
-Batch API: 50% of the above. Long-context surcharges (>272K input) never apply here,
-because chunks are a few thousand tokens.

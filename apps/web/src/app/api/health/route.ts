@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
 import { type NextRequest } from 'next/server';
+import { migrationStatus } from '@coach/core';
 
 // Setup check: /api/health?key=<CRON_SECRET>. Shows ✅/❌ for every part the app depends on,
 // with a hint for each failure. Never prints secret values. Without the key, only the
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
       if (body) {
         checks.push({ name: 'Email sign-in enabled', ok: body.external?.email !== false, hint: 'Authentication → Sign In / Providers → Email: enable it.' });
         checks.push({ name: 'Public sign-up turned off', ok: body.disable_signup === true,
-          hint: 'Authentication → Sign In / Providers: turn off "Allow new users to sign up" (only your team should have accounts).' });
+          hint: 'Authentication → Sign In / Providers: turn off "Allow new users to sign up" (single owner).' });
       }
     } catch (e) {
       checks.push({ name: 'Supabase reachable', ok: false, detail: clip(e) });
@@ -75,16 +76,14 @@ export async function GET(req: NextRequest) {
     try {
       const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
       const { data, error } = await timed(admin.storage.listBuckets());
-      const names = (data ?? []).map((b) => b.name);
-      const missing = ['sources', 'pages', 'exports'].filter((b) => !names.includes(b));
-      checks.push({ name: 'Service key accepted + storage buckets exist', ok: !error && missing.length === 0,
-        detail: error ? clip(error.message) : missing.length ? `missing buckets: ${missing.join(', ')}` : undefined,
-        hint: error ? 'Check SUPABASE_SERVICE_ROLE_KEY (secret / service_role key of the same project).' : 'Run supabase/migrations/20261025000000_init.sql in the SQL Editor.' });
+      checks.push({ name: 'Service key accepted', ok: !error, detail: error ? clip(error.message) : `buckets: ${(data ?? []).map((b) => b.name).join(', ') || 'none'}`,
+        hint: 'Check SUPABASE_SECRET_KEY (secret / service_role key of the same project).' });
       const { data: users } = await timed(admin.auth.admin.listUsers({ page: 1, perPage: 50 }));
-      checks.push({ name: 'User accounts', ok: (users?.users.length ?? 0) > 0, detail: `${users?.users.length ?? 0} account(s)`,
-        hint: 'Authentication → Users → Add user (tick Auto Confirm User).' });
+      const n = users?.users.length ?? 0;
+      checks.push({ name: 'Owner account (exactly one)', ok: n === 1, detail: `${n} account(s)`,
+        hint: n === 0 ? 'Authentication → Users → Add user (tick Auto Confirm User).' : 'This app has a single owner: delete the extra accounts in Authentication → Users.' });
     } catch (e) {
-      checks.push({ name: 'Service key / storage', ok: false, detail: clip(e) });
+      checks.push({ name: 'Service key / accounts', ok: false, detail: clip(e) });
     }
   }
 
@@ -94,43 +93,41 @@ export async function GET(req: NextRequest) {
     try {
       await timed(client.connect());
       checks.push({ name: 'Database connection', ok: true });
-      const t = await client.query<{ name: string }>(
-        `select table_name as name from information_schema.tables where table_schema = 'public'`);
-      const tables = new Set(t.rows.map((r) => r.name));
-      const needed = ['books', 'batches', 'source_files', 'pages', 'blocks', 'glossary_terms', 'jobs', 'exports', 'usage_log', 'app_allowlist'];
-      const missing = needed.filter((n) => !tables.has(n));
-      checks.push({ name: 'Migration 1 (tables)', ok: missing.length === 0, detail: missing.length ? `missing: ${missing.join(', ')}` : undefined,
-        hint: 'Run supabase/migrations/20261025000000_init.sql in the SQL Editor.' });
-      const f = await client.query(`select 1 from pg_proc where proname = 'resume_paused_jobs'`);
-      checks.push({ name: 'Migration 2 (UI helpers)', ok: f.rowCount === 1, hint: 'Run supabase/migrations/20261025000100_ui_helpers.sql in the SQL Editor.' });
-      if (tables.has('app_allowlist')) {
-        const a = await client.query<{ n: number }>('select count(*)::int as n from public.app_allowlist');
-        const u = await client.query<{ n: number }>(
-          `select count(*)::int as n from auth.users u where exists (select 1 from public.app_allowlist a where a.email = lower(u.email))`);
-        checks.push({ name: 'Allowlist', ok: a.rows[0]!.n > 0 && u.rows[0]!.n > 0,
-          detail: `${a.rows[0]!.n} email(s) allowed, ${u.rows[0]!.n} of them have an account`,
-          hint: "insert into public.app_allowlist (email) values (lower('you@example.com')); — same emails as the accounts." });
+      try {
+        const m = await timed(migrationStatus());
+        checks.push({ name: 'Migrations', ok: m.pending.length === 0 && !m.applied.some((a) => a.changed),
+          detail: `${m.applied.length} applied${m.pending.length ? `; pending: ${m.pending.map((p) => p.name + (p.destructive ? ' (destructive)' : '')).join(', ')}` : ''}`
+            + (m.applied.some((a) => a.changed) ? `; changed after applying: ${m.applied.filter((a) => a.changed).map((a) => a.name).join(', ')}` : ''),
+          hint: 'Run /api/admin/migrate?key=…&apply=1 (destructive ones also need &confirm=<file>).' });
+      } catch (e) {
+        checks.push({ name: 'Migrations', ok: false, detail: clip(e) });
       }
-      // Row count of every table (and file count per bucket): an inventory for migrations.
+      const t = await client.query<{ name: string }>(
+        `select table_name as name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by 1`);
       const counts: string[] = [];
-      for (const name of [...tables].sort()) {
-        const kind = await client.query<{ k: string }>(`select table_type as k from information_schema.tables where table_schema = 'public' and table_name = $1`, [name]);
-        if (kind.rows[0]?.k !== 'BASE TABLE') continue;
+      for (const { name } of t.rows) {
         const n = await client.query<{ n: number }>(`select count(*)::int as n from public.${pg.escapeIdentifier(name)}`);
         counts.push(`${name}: ${n.rows[0]!.n}`);
       }
-      checks.push({ name: 'Table row counts', ok: null, detail: counts.join(', ') });
+      checks.push({ name: 'Table row counts', ok: null, detail: counts.join(', ') || 'no tables' });
       const files = await client.query<{ id: string; n: number; mb: string }>(
         `select b.id, count(o.id)::int as n, round(coalesce(sum((o.metadata->>'size')::bigint), 0) / 1e6, 1)::text as mb
          from storage.buckets b left join storage.objects o on o.bucket_id = b.id group by b.id order by b.id`);
-      checks.push({ name: 'Storage', ok: null, detail: files.rows.map((r) => `${r.id}: ${r.n} files, ${r.mb} MB`).join(', ') });
+      checks.push({ name: 'Storage', ok: null, detail: files.rows.map((r) => `${r.id}: ${r.n} files, ${r.mb} MB`).join(', ') || 'no buckets' });
+      const tables = new Set(t.rows.map((r) => r.name));
+      if (tables.has('ai_usage')) {
+        const spent = await client.query<{ usd: string }>(`select coalesce(sum(cost_usd), 0)::text as usd from public.ai_usage where created_at >= date_trunc('month', now())`);
+        const cap = Number(env('OPENAI_MONTHLY_BUDGET_USD') || 20);
+        checks.push({ name: 'AI spend this month', ok: Number(spent.rows[0]!.usd) < cap, detail: `$${Number(spent.rows[0]!.usd).toFixed(2)} of $${cap.toFixed(2)}`,
+          hint: 'Budget reached: non-essential AI features are paused until next month or until OPENAI_MONTHLY_BUDGET_USD is raised.' });
+      }
       if (tables.has('jobs')) {
         const s = await client.query<{ status: string; n: number }>('select status, count(*)::int as n from public.jobs group by status');
         const failed = await client.query<{ type: string; last_error: string; updated_at: Date }>(
-          `select type, last_error, updated_at from public.jobs where last_error is not null order by updated_at desc limit 5`);
+          `select type, last_error, updated_at from public.jobs where status = 'failed' and updated_at > now() - interval '7 days' order by updated_at desc limit 5`);
         checks.push({ name: 'Jobs', ok: null, detail: s.rows.map((r) => `${r.status}: ${r.n}`).join(', ') || 'no jobs yet' });
         for (const j of failed.rows) {
-          checks.push({ name: `Recent job error (${j.type}, ${j.updated_at.toISOString().slice(0, 16)})`, ok: false, detail: clip(j.last_error, 400) });
+          checks.push({ name: `Failed job (${j.type}, ${j.updated_at.toISOString().slice(0, 16)})`, ok: false, detail: clip(j.last_error, 400) });
         }
       }
     } catch (e) {
@@ -145,7 +142,7 @@ export async function GET(req: NextRequest) {
 
   // ── OpenAI ──
   if (openai) {
-    const models = [env('OCR_MODEL') || 'gpt-6-luna', env('TRANSLATION_MODEL') || 'gpt-6.1-sol', env('GLOSSARY_MODEL') || 'gpt-6.1-sol', env('PREMIUM_TRANSLATION_MODEL') || 'gpt-6-astra'];
+    const models = [env('OPENAI_TEXT_MODEL') || 'gpt-6.1-sol', env('OPENAI_VISION_MODEL') || 'gpt-6-luna', env('OPENAI_IMAGE_MODEL') || 'gpt-image-2.5-flare'];
     for (const m of [...new Set(models)]) {
       try {
         const r = await timed(fetch(`https://api.openai.com/v1/models/${encodeURIComponent(m)}`, { headers: { authorization: `Bearer ${openai}` } }));

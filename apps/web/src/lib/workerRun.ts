@@ -1,16 +1,14 @@
 import 'server-only';
 import { randomUUID } from 'node:crypto';
-import {
-  closeBrowser, dbCallHooks, OpenAITransport, runUntil, storageFromEnv, type PipelineDeps,
-} from '@bookbridge/core';
+import { dbCallHooks, OpenAITransport, runUntil, SupabaseStorage, type JobDeps } from '@coach/core';
 import { kickWorker } from './kick';
 
-// The pipeline worker, running inside a Vercel function. Each run works until its time budget
-// is nearly used (long stages save progress and yield), then starts the next run if work is left.
+// The background worker, running inside a Vercel function. Each run works until its time budget
+// is nearly used (long jobs save progress and yield), then starts the next run if work is left.
 
-let deps: PipelineDeps | null = null;
-function getDeps(): PipelineDeps {
-  deps ??= { storage: storageFromEnv(), transport: new OpenAITransport(), hooks: dbCallHooks };
+let deps: JobDeps | null = null;
+function getDeps(): JobDeps {
+  deps ??= { storage: new SupabaseStorage(), transport: new OpenAITransport(), hooks: dbCallHooks };
   return deps;
 }
 
@@ -34,7 +32,5 @@ export async function runWorker(origin: string, startedAt: number) {
     if (r.moreWork) await kickWorker(origin);
   } catch (err) {
     log('worker run crashed', { error: err instanceof Error ? err.stack : String(err) });
-  } finally {
-    await closeBrowser();
   }
 }

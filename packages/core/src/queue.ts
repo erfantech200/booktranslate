@@ -1,11 +1,9 @@
 import { query, maybeOne, tx, type Queryable } from './db/pool';
-import type { JobType } from './types';
 
 export interface Job {
   id: string;
   user_id: string;
-  book_id: string | null;
-  type: JobType;
+  type: string;
   payload: Record<string, unknown>;
   dedupe_key: string | null;
   status: 'queued' | 'running' | 'done' | 'failed' | 'paused' | 'cancelled';
@@ -18,8 +16,7 @@ export interface Job {
 
 export interface EnqueueOpts {
   userId: string;
-  bookId?: string | null;
-  type: JobType;
+  type: string;
   payload: Record<string, unknown>;
   /** One live job per key; a duplicate enqueue is a no-op. */
   dedupeKey?: string;
@@ -31,12 +28,12 @@ export interface EnqueueOpts {
 /** Idempotent enqueue: if a live job with the same dedupe key exists, nothing is inserted. */
 export async function enqueue(o: EnqueueOpts, client?: Queryable): Promise<string | null> {
   const row = await maybeOne<{ id: string }>(
-    `insert into public.jobs (user_id, book_id, type, payload, dedupe_key, priority, run_after, max_attempts)
-     values ($1, $2, $3, $4, $5, $6, coalesce($7, now()), $8)
+    `insert into public.jobs (user_id, type, payload, dedupe_key, priority, run_after, max_attempts)
+     values ($1, $2, $3, $4, $5, coalesce($6, now()), $7)
      on conflict (dedupe_key) where dedupe_key is not null and status in ('queued','running','paused')
      do nothing
      returning id`,
-    [o.userId, o.bookId ?? null, o.type, JSON.stringify(o.payload), o.dedupeKey ?? null,
+    [o.userId, o.type, JSON.stringify(o.payload), o.dedupeKey ?? null,
      o.priority ?? 0, o.runAfter ?? null, o.maxAttempts ?? 5],
     client,
   );
@@ -122,7 +119,7 @@ export async function failJob(job: Pick<Job, 'id' | 'attempts' | 'max_attempts'>
   return 'failed';
 }
 
-/** Stage yielded (time budget): back to the queue right away, attempt refunded. */
+/** Job yielded (time budget): back to the queue right away, attempt refunded. */
 export async function requeueJob(jobId: string): Promise<void> {
   await query(
     `update public.jobs set status = 'queued', locked_until = null, locked_by = null, run_after = now(),
@@ -150,13 +147,13 @@ export async function pauseJob(jobId: string, reason: string): Promise<void> {
   );
 }
 
-/** Re-queue paused jobs (e.g. after the user raises a budget cap). */
-export async function resumePausedJobs(userId: string, bookId?: string): Promise<number> {
+/** Re-queue paused jobs (e.g. after the budget resets or is raised). */
+export async function resumePausedJobs(userId: string): Promise<number> {
   const rows = await query(
     `update public.jobs set status = 'queued', run_after = now(), last_error = null
-     where user_id = $1 and status = 'paused' and ($2::uuid is null or book_id = $2)
+     where user_id = $1 and status = 'paused'
      returning id`,
-    [userId, bookId ?? null],
+    [userId],
   );
   return rows.length;
 }

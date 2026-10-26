@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 import type { z } from 'zod';
-import { env, type ReasoningEffort, type Stage } from '../config';
+import { env, type ReasoningEffort } from '../config';
 import { costUsd, ZERO_USAGE, type Usage } from '../cost';
 
 // The ONLY place that talks to OpenAI. Every call uses Structured Outputs (strict JSON schema),
@@ -99,16 +99,15 @@ export class OpenAITransport implements ModelTransport {
 
 export interface CallContext {
   userId: string;
-  bookId?: string | null;
-  batchId?: string | null;
-  pageId?: string | null;
+  /** What the call is for, e.g. 'meal_plan', 'coach_chat', 'checkin_narrative'. Logged in ai_usage. */
+  feature: string;
+  /** Essential calls (e.g. parsing a meal the user is logging) still run when the monthly budget is used up. */
+  essential?: boolean;
   jobId?: string | null;
 }
 
 export interface UsageRecord extends CallContext, Usage {
-  stage: Stage;
   model: string;
-  mode: 'fast' | 'batch';
   costUsd: number;
   ok: boolean;
   requestId: string | null;
@@ -138,7 +137,6 @@ export interface StructuredCallArgs<S extends z.ZodType> {
   transport: ModelTransport;
   hooks: CallHooks;
   ctx: CallContext;
-  stage: Stage;
   model: string;
   effort: ReasoningEffort;
   schema: S;
@@ -147,7 +145,7 @@ export interface StructuredCallArgs<S extends z.ZodType> {
   input: InputMessage[];
   maxOutputTokens?: number;
   cacheKey?: string;
-  /** Extra semantic validation after zod (e.g. "every block id present"). Return an error string or null. */
+  /** Extra semantic validation after zod (e.g. "every food id exists"). Return an error string or null. */
   check?: (value: z.infer<S>) => string | null;
 }
 
@@ -194,8 +192,8 @@ export async function structuredCall<S extends z.ZodType>(a: StructuredCallArgs<
     }
 
     await a.hooks.logUsage({
-      ...a.ctx, ...res.usage, stage: a.stage, model: a.model, mode: 'fast',
-      costUsd: costUsd(a.model, res.usage, 'fast'), ok: issue === null, requestId: res.requestId,
+      ...a.ctx, ...res.usage, model: a.model,
+      costUsd: costUsd(a.model, res.usage), ok: issue === null, requestId: res.requestId,
     });
 
     if (issue === null && value !== undefined) return { value, usage: total, attempts: attempt };

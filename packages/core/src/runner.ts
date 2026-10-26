@@ -1,12 +1,12 @@
 import { env } from './config';
 import { BudgetExceededError } from './openai/structured';
 import { claimJobs, completeJob, failJob, heartbeat, nextRunAt, pauseJob, requeueJob, type Job } from './queue';
-import { JobYield, markJobFailure, PermanentError, runJob, type PipelineDeps } from './pipeline/index';
+import { JobYield, PermanentError, runJob, type JobDeps } from './jobs';
 
 export interface RunnerOptions {
   workerId: string;
   leaseSeconds?: number;
-  /** Epoch ms after which stages should yield (serverless). Omit for an unlimited worker. */
+  /** Epoch ms after which jobs should yield (serverless). Omit for an unlimited run (tests). */
   deadline?: number;
   log?: (msg: string, extra?: Record<string, unknown>) => void;
 }
@@ -17,7 +17,7 @@ const defaultLog = (msg: string, extra?: Record<string, unknown>) =>
 const timeLeftFn = (deadline?: number) => () => (deadline === undefined ? Infinity : deadline - Date.now());
 
 /** Run one claimed job to completion, translating errors into queue state. */
-export async function executeJob(job: Job, deps: PipelineDeps, o: RunnerOptions): Promise<'done' | 'retry' | 'failed' | 'paused' | 'yielded'> {
+export async function executeJob(job: Job, deps: JobDeps, o: RunnerOptions): Promise<'done' | 'retry' | 'failed' | 'paused' | 'yielded'> {
   const lease = o.leaseSeconds ?? env().JOB_LEASE_SECONDS;
   const log = o.log ?? defaultLog;
   const started = Date.now();
@@ -33,7 +33,7 @@ export async function executeJob(job: Job, deps: PipelineDeps, o: RunnerOptions)
       if (!(await heartbeat(job.id, o.workerId, lease))) throw new Error('lost job lease');
     },
   };
-  // Background heartbeat for long single steps (one OCR call can take a while).
+  // Background heartbeat for long single steps (one model call can take a while).
   const timer = setInterval(() => { void heartbeat(job.id, o.workerId, lease).catch(() => {}); }, Math.max(5_000, (lease * 1000) / 3));
   try {
     const result = await runJob(ctx);
@@ -49,13 +49,11 @@ export async function executeJob(job: Job, deps: PipelineDeps, o: RunnerOptions)
     const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     if (err instanceof BudgetExceededError) {
       await pauseJob(job.id, err.message);
-      await markJobFailure(job.type, job.payload, err.message, 'paused');
       log('job paused (budget)', { job: job.id, type: job.type, error: err.message });
       return 'paused';
     }
     const permanent = err instanceof PermanentError;
     const outcome = await failJob(job, msg, { retryable: !permanent });
-    if (outcome === 'failed') await markJobFailure(job.type, job.payload, permanent ? (err as Error).message : msg, 'error');
     log(outcome === 'retry' ? 'job failed, will retry' : 'job failed', { job: job.id, type: job.type, error: msg, attempt: job.attempts });
     return outcome;
   } finally {
@@ -67,7 +65,7 @@ export async function executeJob(job: Job, deps: PipelineDeps, o: RunnerOptions)
  * Claim up to `slots` jobs and run them concurrently. Returns how many were claimed, so callers
  * can poll faster while there is work and back off when idle.
  */
-export async function runAvailable(deps: PipelineDeps, slots: number, o: RunnerOptions): Promise<number> {
+export async function runAvailable(deps: JobDeps, slots: number, o: RunnerOptions): Promise<number> {
   const jobs = await claimJobs(o.workerId, slots, o.leaseSeconds ?? env().JOB_LEASE_SECONDS);
   await Promise.all(jobs.map((j) => executeJob(j, deps, o)));
   return jobs.length;
@@ -79,7 +77,7 @@ export async function runAvailable(deps: PipelineDeps, slots: number, o: RunnerO
  * remaining time (e.g. a short retry backoff) is waited for. Returns jobs run and whether
  * runnable work is still left, so the caller can start the next run.
  */
-export async function runUntil(deps: PipelineDeps, o: RunnerOptions & { deadline: number; lanes?: number; claimMinMs?: number }): Promise<{ ran: number; moreWork: boolean }> {
+export async function runUntil(deps: JobDeps, o: RunnerOptions & { deadline: number; lanes?: number; claimMinMs?: number }): Promise<{ ran: number; moreWork: boolean }> {
   const claimMinMs = o.claimMinMs ?? 120_000;
   const timeLeft = timeLeftFn(o.deadline);
   let ran = 0;
@@ -101,7 +99,7 @@ export async function runUntil(deps: PipelineDeps, o: RunnerOptions & { deadline
 }
 
 /** Drain the queue (tests / one-shot CLI): keep claiming until nothing runnable is left. */
-export async function drain(deps: PipelineDeps, o: RunnerOptions & { slots?: number; maxRounds?: number }): Promise<number> {
+export async function drain(deps: JobDeps, o: RunnerOptions & { slots?: number; maxRounds?: number }): Promise<number> {
   let total = 0;
   for (let round = 0; round < (o.maxRounds ?? 500); round++) {
     const n = await runAvailable(deps, o.slots ?? 4, o);

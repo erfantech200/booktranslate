@@ -1,7 +1,6 @@
 {
-  "_comment": "USD per 1M tokens. UNVERIFIED third-party figures (see docs/openai-api-notes.md); confirm on OpenAI's pricing page. batchDiscount applies to Batch API ('cheap' mode).",
+  "_comment": "USD per 1M tokens. UNVERIFIED third-party figures (see docs/openai-api-notes.md); confirm on OpenAI's pricing page. Image-model prices are added when exercise images are built (Phase 5).",
   "currency": "USD",
-  "batchDiscount": 0.5,
   "models": {
     "gpt-6-luna":  { "input": 0.10, "cachedInput": 0.01, "cacheWrite": 0.125, "output": 0.50 },
     "gpt-6-sol":   { "input": 2.00, "cachedInput": 0.20, "cacheWrite": 2.50,  "output": 10.00 },

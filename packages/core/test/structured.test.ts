@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { BudgetExceededError, InvalidModelOutputError, structuredCall, type ModelTransport, type TransportResponse, type UsageRecord } from '../src/openai/structured';
-import { costUsd, estimateRun } from '../src/cost';
+import { costUsd } from '../src/cost';
 
 const Schema = z.object({ items: z.array(z.object({ id: z.string(), text: z.string() })) });
 const u = { inputTokens: 1000, cachedTokens: 400, cacheWriteTokens: 0, outputTokens: 200, reasoningTokens: 50 };
@@ -23,7 +23,7 @@ function hooks() {
   return { logged, hooks: { checkBudget: async () => {}, logUsage: async (r: UsageRecord) => { logged.push(r); } } };
 }
 
-const base = { ctx: { userId: 'u' }, stage: 'translate' as const, model: 'gpt-6.1-sol', effort: 'medium' as const,
+const base = { ctx: { userId: 'u', feature: 'test' }, model: 'gpt-6.1-sol', effort: 'medium' as const,
   schema: Schema, schemaName: 't', instructions: 'x', input: [{ role: 'user' as const, content: 'hi' }] };
 
 describe('structuredCall', () => {
@@ -69,17 +69,11 @@ describe('structuredCall', () => {
 });
 
 describe('cost', () => {
-  it('bills cached input at the cached rate and batch at the discount', () => {
+  it('bills cached input at the cached rate; unknown models cost 0', () => {
     const full = costUsd('gpt-6-luna', { ...u, cachedTokens: 0 });
     const cached = costUsd('gpt-6-luna', u);
     expect(cached).toBeLessThan(full);
-    expect(costUsd('gpt-6-luna', u, 'batch')).toBeCloseTo(cached / 2, 12);
+    expect(full).toBeCloseTo((1000 * 0.10 + 200 * 0.50) / 1e6, 12);
     expect(costUsd('unknown-model', u)).toBe(0);
-  });
-  it('estimates a 20-page run with Cheap cheaper than Fast', () => {
-    const e = estimateRun({ ocrModel: 'gpt-6-luna', translateModel: 'gpt-6.1-sol', ocrPages: 20, sourceTokens: 20 * 450 });
-    expect(e.totalFastUsd).toBeGreaterThan(0);
-    expect(e.totalCheapUsd).toBeLessThan(e.totalFastUsd);
-    expect(e.ocr.usd).toBeLessThan(e.translate.fastUsd);
   });
 });

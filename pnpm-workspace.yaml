@@ -4,4 +4,3 @@ packages:
 onlyBuiltDependencies:
   - sharp
   - esbuild
-  - '@napi-rs/canvas'

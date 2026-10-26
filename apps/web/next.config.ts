@@ -19,41 +19,18 @@ try {
 }
 
 const repoRoot = resolve(process.cwd(), '../..');
+const migrations = ['../../supabase/migrations/**/*'];
 
 const config: NextConfig = {
   env: {
     NEXT_PUBLIC_SUPABASE_URL: publicSupabaseUrl,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: publicSupabaseKey,
   },
-  transpilePackages: ['@bookbridge/core'],
-  // The pipeline worker runs inside /api/worker/run. Native and large packages stay external
-  // (required from node_modules at runtime) and their data files are traced into that function.
+  transpilePackages: ['@coach/core'],
   outputFileTracingRoot: repoRoot,
-  serverExternalPackages: ['@sparticuz/chromium', 'playwright-core', 'sharp', '@napi-rs/canvas', 'pdfjs-dist', 'heic-convert', 'pg'],
-  outputFileTracingIncludes: {
-    '/api/worker/run': [
-      '../../packages/core/prompts/**/*',
-      '../../packages/core/assets/fonts/**/*',
-      './node_modules/@sparticuz/chromium/bin/**/*',
-      // playwright-core reads these through computed paths the tracer cannot follow.
-      './node_modules/playwright-core/browsers.json',
-      './node_modules/playwright-core/package.json',
-      './node_modules/playwright-core/lib/**/*',
-      './node_modules/pdfjs-dist/standard_fonts/**/*',
-      './node_modules/pdfjs-dist/cmaps/**/*',
-    ],
-  },
-  // Vercel runs on glibc Linux: drop the musl builds of the native packages (~50 MB) to stay well
-  // under the 250 MB function size limit.
-  outputFileTracingExcludes: {
-    // pnpm layout: paths start with ../../node_modules/.pnpm/ (globs don't cross dot-segments).
-    '/api/worker/run': [
-      '../../node_modules/.pnpm/@napi-rs+canvas-linux-x64-musl@*/**',
-      '../../node_modules/.pnpm/@img+sharp-libvips-linuxmusl-x64@*/**',
-      '../../node_modules/.pnpm/@img+sharp-linuxmusl-x64@*/**',
-    ],
-  },
-  // Uploads go straight from the browser to Supabase Storage, never through Vercel functions.
+  serverExternalPackages: ['pg'],
+  // The migration runner reads supabase/migrations at runtime (computed path, invisible to the tracer).
+  outputFileTracingIncludes: { '/api/admin/migrate': migrations, '/api/health': migrations },
   async headers() {
     return [{
       source: '/:path*',

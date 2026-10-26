@@ -98,7 +98,7 @@ That is one test book of about 13 paragraphs. Nothing here carries over to the c
 ### Dependencies that become unused
 - `apps/web`: `@napi-rs/canvas`, `@sparticuz/chromium`, `playwright-core`, `pdfjs-dist`, `heic-convert`, `jszip`.
 - `packages/core`: the same six, plus `exifr`, `p-limit` (if no longer used) and dev deps `@fontsource/noto-naskh-arabic`, `@fontsource/noto-serif`, `@fontsource/vazirmatn` (Vazirmatn will be self-hosted from a woff2 in the web app).
-- Stay: `sharp` (resize + strip EXIF from progress and meal photos), `openai`, `zod`, `pg`, `@supabase/*`, `next-intl`.
+- Stay: `openai`, `zod`, `pg`, `@supabase/*`, `next-intl`. `sharp` is also removed for now; it comes back with photo uploads (resize + strip EXIF).
 
 This also shrinks the worker function from ~147 MB to a few MB.
 

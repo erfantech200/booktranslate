@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from './i18n/routing';
 
 const intl = createIntlMiddleware(routing);
-const PUBLIC = [/^\/(en\/)?login\/?$/, /^\/(fa\/)?login\/?$/];
+const PUBLIC = [/^\/login\/?$/];
 
 // NEXT_PUBLIC_* values are baked in at build time: if they were missing when Vercel built the
 // site, every request would crash with a bare "Internal Server Error". Show what to fix instead.
@@ -27,9 +27,8 @@ then <i>Deployments → ⋯ → Redeploy</i>. These values are read when the sit
 }
 
 /**
- * 1) next-intl locale routing, 2) refresh the Supabase session cookie, 3) redirect anonymous
- * visitors to /login. Whether the account is allowed is decided by the database (allowlist +
- * RLS) and by the OAuth callback, not here.
+ * 1) next-intl routing, 2) refresh the Supabase session cookie, 3) send anonymous visitors to
+ * /login and answer 401 on APIs. Data access is additionally limited to the owner's rows by RLS.
  */
 export async function proxy(req: NextRequest) {
   const path0 = req.nextUrl.pathname;
@@ -38,9 +37,7 @@ export async function proxy(req: NextRequest) {
   const problem = configProblem();
   if (problem) return setupPage(problem);
 
-  const res = req.nextUrl.pathname.startsWith('/api') || req.nextUrl.pathname.startsWith('/auth')
-    ? NextResponse.next({ request: req })
-    : intl(req);
+  const res = req.nextUrl.pathname.startsWith('/api') ? NextResponse.next({ request: req }) : intl(req);
 
   const sb = createServerClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
     cookies: {
@@ -52,13 +49,12 @@ export async function proxy(req: NextRequest) {
   const user = await sb.auth.getUser().then((r) => r.data.user, () => null);
 
   const path = req.nextUrl.pathname;
-  // /api/worker/* authenticates with CRON_SECRET itself (called by the cron and by the app).
-  const isPublic = PUBLIC.some((r) => r.test(path)) || path.startsWith('/auth') || path.startsWith('/api/worker/');
+  // /api/worker/* and /api/admin/* authenticate with CRON_SECRET themselves.
+  const isPublic = PUBLIC.some((r) => r.test(path)) || path.startsWith('/api/worker/') || path.startsWith('/api/admin/');
   if (!user && !isPublic) {
     if (path.startsWith('/api')) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     const url = req.nextUrl.clone();
-    const locale = path.startsWith('/en') ? '/en' : '';
-    url.pathname = `${locale}/login`;
+    url.pathname = '/login';
     url.search = '';
     const redirect = NextResponse.redirect(url);
     res.cookies.getAll().forEach((c) => redirect.cookies.set(c));
@@ -69,5 +65,5 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   // Skip static files and Next internals.
-  matcher: ['/((?!_next|favicon.ico|manifest.webmanifest|icons|pdfjs|.*\\.(?:png|jpg|svg|webp|woff2|ico|txt)$).*)'],
+  matcher: ['/((?!_next|favicon.ico|manifest.webmanifest|icons|.*\\.(?:png|jpg|svg|webp|woff2|ico|txt)$).*)'],
 };

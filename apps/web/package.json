@@ -1,30 +1,23 @@
 {
-  "name": "@bookbridge/web",
+  "name": "@coach/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/copy-pdf-worker.mjs && next dev",
-    "build": "node scripts/copy-pdf-worker.mjs && next build",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bookbridge/core": "workspace:*",
-    "@napi-rs/canvas": "1.0.13",
-    "@sparticuz/chromium": "153.0.0",
+    "@coach/core": "workspace:*",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.118.0",
-    "heic-convert": "2.1.0",
-    "jszip": "3.10.2",
     "next": "16.4.3",
     "next-intl": "4.14.9",
-    "pdfjs-dist": "6.4.299",
     "pg": "8.23.1",
-    "playwright-core": "1.63.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "sharp": "0.35.5",
     "zod": "4.6.7"
   },
   "devDependencies": {

@@ -2,7 +2,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
-export type Bucket = 'sources' | 'pages' | 'exports';
+// Private buckets only; files are reached through short-lived signed URLs.
+export type Bucket = string;
 
 export interface Storage {
   upload(bucket: Bucket, path: string, data: Buffer, contentType: string): Promise<void>;
@@ -11,12 +12,31 @@ export interface Storage {
   signedUrl(bucket: Bucket, path: string, ttlSeconds: number, downloadName?: string): Promise<string>;
 }
 
+/** Removes a bucket with all its files (Supabase refuses direct SQL deletes on storage tables). */
+export async function deleteBucket(sb: SupabaseClient, bucket: string): Promise<'deleted' | 'missing'> {
+  const { data } = await sb.storage.getBucket(bucket);
+  if (!data) return 'missing';
+  const emptied = await sb.storage.emptyBucket(bucket);
+  if (emptied.error) throw new Error(`empty bucket ${bucket}: ${emptied.error.message}`);
+  const removed = await sb.storage.deleteBucket(bucket);
+  if (removed.error) throw new Error(`delete bucket ${bucket}: ${removed.error.message}`);
+  return 'deleted';
+}
+
+/** Service-role Supabase client (worker and admin routes only). */
+export function serviceClient(
+  url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL,
+  key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY,
+): SupabaseClient {
+  if (!url || !key) throw new Error('Supabase URL / secret key not set (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY)');
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
 /** Supabase Storage with the service role (worker only). Buckets are private. */
 export class SupabaseStorage implements Storage {
   private sb: SupabaseClient;
-  constructor(url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY) {
-    if (!url || !key) throw new Error('Supabase URL / secret key not set (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY)');
-    this.sb = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  constructor(sb: SupabaseClient = serviceClient()) {
+    this.sb = sb;
   }
   async upload(bucket: Bucket, path: string, data: Buffer, contentType: string) {
     const { error } = await this.sb.storage.from(bucket).upload(path, data, { contentType, upsert: true });

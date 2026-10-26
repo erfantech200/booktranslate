@@ -1,26 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { query, one } from '../../src/db/pool';
+import { query } from '../../src/db/pool';
 
 export const RUN = !!process.env.DB_TESTS && !!process.env.DATABASE_URL;
 
-export async function createUser(email: string, allowed = true): Promise<string> {
+export async function createUser(email: string): Promise<string> {
   const id = randomUUID();
   await query('insert into auth.users (id, email) values ($1, $2)', [id, email]);
-  if (allowed) await query('insert into public.app_allowlist (email) values (lower($1)) on conflict do nothing', [email]);
   return id;
-}
-
-export async function createBook(userId: string, o: { title?: string; translator?: string; budget?: number } = {}): Promise<string> {
-  const r = await one<{ id: string }>(
-    `insert into public.books (user_id, title, author, translator_name, budget_usd) values ($1, $2, $3, $4, $5) returning id`,
-    [userId, o.title ?? 'The Lantern Keeper', 'A. Tester', o.translator ?? 'Erfan', o.budget ?? null]);
-  return r.id;
-}
-
-export async function createBatch(userId: string, bookId: string, seq: number): Promise<string> {
-  const r = await one<{ id: string }>(
-    `insert into public.batches (user_id, book_id, seq, status) values ($1, $2, $3, 'queued') returning id`, [userId, bookId, seq]);
-  return r.id;
 }
 
 /** Run SQL as an authenticated Supabase user (RLS applies), inside a rolled-back transaction. */
