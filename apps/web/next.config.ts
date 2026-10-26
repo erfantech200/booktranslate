@@ -28,7 +28,7 @@ const config: NextConfig = {
   },
   transpilePackages: ['@coach/core'],
   outputFileTracingRoot: repoRoot,
-  serverExternalPackages: ['pg'],
+  serverExternalPackages: ['pg', 'sharp'],
   // The migration runner reads supabase/migrations at runtime (computed path, invisible to the tracer).
   outputFileTracingIncludes: { '/api/admin/migrate': migrations, '/api/health': migrations },
   async headers() {
@@ -36,6 +36,7 @@ const config: NextConfig = {
       source: '/:path*',
       headers: [
         { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         { key: 'X-Frame-Options', value: 'DENY' },
         { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },

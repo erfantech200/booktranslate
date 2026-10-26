@@ -11,7 +11,11 @@ removed from the previous product (Bookbridge, a book translator). Verified Open
   single locale `fa` (no URL prefix). Deploys on Vercel (project `booktranslate`, region `syd1`).
   Pages, actions and APIs talk to Supabase **as the signed-in user** (RLS). Exceptions, using the
   service role / `DATABASE_URL`: the worker route `app/api/worker/run` (+ `lib/workerRun.ts`), the
-  migration runner `app/api/admin/migrate`, and the health check. All three are CRON_SECRET-protected.
+  migration runner `app/api/admin/migrate` and the health check (all CRON_SECRET-protected), and the
+  sign-in action's rate limiter (`login_attempts`, written before anyone is signed in).
+- Auth: sign-in runs server-side (`app/[locale]/login/actions.ts`); session cookies are httpOnly,
+  Secure, SameSite=Lax, 30-day rolling (`lib/supabase/cookies.ts`). There is no browser Supabase
+  client: storage uploads go through server routes (e.g. `app/api/photos`).
 - `packages/core`: config, DB pool (`pg`), job queue + runner, OpenAI structured calls, usage/cost,
   migration runner. Web imports only the client-safe entry `@coach/core/shared` from client code.
 - Supabase: Postgres, private Storage buckets, email + password auth for ONE owner account (sign-up
@@ -32,7 +36,8 @@ pnpm migrate      # runner CLI against $DATABASE_URL (--apply, --confirm=<file>)
 ## Conventions
 - **Deterministic engine, LLM for language** (spec §1): every number that matters is computed in
   code; the LLM explains, writes, picks within engine bounds, and chats.
-- All tunable coaching constants live in ONE config file, each with a one-line rationale comment.
+- All tunable coaching constants live in ONE file, `packages/core/src/coach.config.ts`, each with a
+  one-line rationale comment. Engine code in `packages/core/src/engine/` (pure, client-safe, tested).
 - Model IDs, reasoning effort, prices and prompts are config (env, `config/prices.json`). Never
   hardcode a model ID in logic. Env: `OPENAI_TEXT_MODEL`, `OPENAI_VISION_MODEL`, `OPENAI_IMAGE_MODEL`.
 - Every model call goes through `structuredCall()` (`packages/core/src/openai/structured.ts`): zod
@@ -43,12 +48,17 @@ pnpm migrate      # runner CLI against $DATABASE_URL (--apply, --confirm=<file>)
 - Relative imports inside `packages/core` are extensionless (Turbopack + transpiled workspace package).
 - UI copy goes in `apps/web/messages/fa.json`. Use logical CSS (`ms-`/`me-`, `start`/`end`).
 - Status shown in the UI is read from the DB. No fake progress, no fabricated "kg of muscle".
+- Numbers: Latin digits with tabular figures by default (`.num`), Persian digits as a setting
+  (`lib/format.ts`); numeric inputs accept Persian digits (`lib/digits.ts`). Dates are Jalali.
+- Design tokens are CSS variables in `app/globals.css` (dark default, light via `data-theme`); one
+  accent (saffron). Chart colours `--chart-*` are validated with the dataviz palette checker.
 
 ## Hard rules
 - No keys in code. `.env.local` / platform secrets only. Keep `.env.example` current.
 - Migrations: SQL files in `supabase/migrations/` named `YYYYMMDDHHMMSS_name.sql`, applied by the
   runner (never edited after being applied; the health check flags changed checksums).
-  New table ⇒ `user_id` column + RLS enabled + owner policies in the same migration.
+  New table ⇒ `user_id` column + RLS enabled + owner policies in the same migration (exception:
+  service-only tables with no user, such as `login_attempts`: RLS on, no policies).
   Destructive changes go in their own migration marked `-- @destructive`; before running one on
   production, show the owner the table list with row counts and wait for an explicit "yes".
 - Private buckets only, short-lived signed URLs (≤10 min). Photos: strip EXIF on upload.

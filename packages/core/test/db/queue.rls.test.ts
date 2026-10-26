@@ -6,11 +6,12 @@ import { BudgetExceededError } from '../../src/openai/structured';
 import { resetEnvCache } from '../../src/config';
 import { applyMigrations, migrationStatus } from '../../src/migrate';
 import { asUser, createUser, RUN } from './helpers';
+import { hashIp, loginBlockedMinutes, recordLoginAttempt } from '../../src/loginLimit';
 
 describe.skipIf(!RUN)('migrations', () => {
   it('leave no translator tables, nothing pending, and re-running is a no-op', async () => {
     const tables = (await query<{ t: string }>(`select table_name as t from information_schema.tables where table_schema = 'public' order by 1`)).map((r) => r.t);
-    expect(tables).toEqual(['ai_usage', 'jobs', 'schema_migrations']);
+    expect(tables).toEqual(['ai_usage', 'body_metrics', 'jobs', 'login_attempts', 'profile', 'progress_photos', 'schema_migrations']);
     expect((await migrationStatus()).pending).toEqual([]);
     expect(await applyMigrations()).toEqual({ applied: [] });
   });
@@ -99,5 +100,46 @@ describe.skipIf(!RUN)('RLS', () => {
       await expect(q('select id from public.jobs')).rejects.toThrow(/permission denied/);
     });
     await query('delete from public.jobs where user_id = $1', [a]);
+  });
+});
+
+describe.skipIf(!RUN)('profile and metrics', () => {
+  it('keeps each user to their own rows; login attempts are server-only', async () => {
+    const a = await createUser('owner@example.com');
+    const b = await createUser('other@example.com');
+    await asUser(a, 'owner@example.com', async (q) => {
+      await q(`insert into public.profile (user_id, sex, height_cm) values ($1, 'male', 178)`, [a]);
+      await q(`insert into public.body_metrics (user_id, date, weight_kg) values ($1, '2026-11-01', 70.2)`, [a]);
+      // One row per day: a second weigh-in the same day is an update (upsert), not a new row.
+      await q(`insert into public.body_metrics (user_id, date, weight_kg) values ($1, '2026-11-01', 70.6)
+               on conflict (user_id, date) do update set weight_kg = excluded.weight_kg`, [a]);
+      expect(await q('select weight_kg::float as w from public.body_metrics')).toEqual([{ w: 70.6 }]);
+      await expect(q(`insert into public.body_metrics (user_id, date, weight_kg) values ($1, '2026-11-02', 70)`, [b])).rejects.toThrow(/row-level security/);
+      await expect(q(`insert into public.body_metrics (user_id, date, weight_kg) values ($1, '2026-11-03', 999)`, [a])).rejects.toThrow(/check constraint/);
+      await expect(q('select * from public.login_attempts')).rejects.toThrow(/permission denied/);
+      // Commit these rows for the next block (asUser rolls back): copy them as the service role.
+    });
+    await query(`insert into public.profile (user_id, sex) values ($1, 'male')`, [a]);
+    await asUser(b, 'other@example.com', async (q) => {
+      expect(await q('select * from public.profile')).toEqual([]);
+      expect(await q(`update public.profile set sex = 'female' where user_id = $1 returning user_id`, [a])).toEqual([]);
+    });
+    await query('delete from public.profile where user_id = $1', [a]);
+  });
+
+  it('blocks an IP after 5 failures in 15 minutes and clears on success', async () => {
+    const ip = hashIp('203.0.113.7', 'test-secret');
+    expect(ip).not.toContain('203');
+    for (let i = 0; i < 4; i++) await recordLoginAttempt(ip, false);
+    expect(await loginBlockedMinutes(ip)).toBe(0);
+    await recordLoginAttempt(ip, false);
+    const wait = await loginBlockedMinutes(ip);
+    expect(wait).toBeGreaterThan(0);
+    expect(wait).toBeLessThanOrEqual(15);
+    // Failures older than the window don't count.
+    await query(`update public.login_attempts set created_at = now() - interval '16 minutes' where ip_hash = $1`, [ip]);
+    expect(await loginBlockedMinutes(ip)).toBe(0);
+    await recordLoginAttempt(ip, true);
+    expect((await one('select count(*)::int as n from public.login_attempts where ip_hash = $1 and not ok', [ip])).n).toBe(0);
   });
 });

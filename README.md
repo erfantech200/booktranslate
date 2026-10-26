@@ -6,10 +6,16 @@ translator) is [`docs/AUDIT.md`](docs/AUDIT.md). Conventions and hard rules: [`C
 
 ## Status
 
-Phase 0 is done: the translator is removed and the app is an empty, signed-in Persian shell
-(login → home → sign out) with the infrastructure kept: Supabase auth/DB/storage, a background job
-queue with a Vercel worker route, `structuredCall()` for OpenAI, AI usage logging with a monthly cap,
-and a migration runner. Phases 1–5 (see the spec) build the product.
+- **Phase 0:** the translator is removed; the infrastructure is kept (Supabase auth/DB/storage, a background job queue with a Vercel
+  worker route, `structuredCall()` for OpenAI, AI usage logging with a monthly cap, and a migration runner).
+- **Phase 1:**
+  - hardened single-owner sign-in;
+  - a Persian app shell (dark/light, tabs, PWA);
+  - onboarding and Settings;
+  - baseline progress photos;
+  - daily weigh-ins with a weight chart (7-day average, plan line, trend projection).
+
+Phases 2–5 (see the spec) add training, nutrition, progress tracking, and the AI coach.
 
 ## Repo
 

@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import createIntlMiddleware from 'next-intl/middleware';
 import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from './i18n/routing';
+import { hardenCookie } from './lib/supabase/cookies';
 
 const intl = createIntlMiddleware(routing);
 const PUBLIC = [/^\/login\/?$/];
@@ -42,7 +43,7 @@ export async function proxy(req: NextRequest) {
   const sb = createServerClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
     cookies: {
       getAll: () => req.cookies.getAll(),
-      setAll: (list) => list.forEach(({ name, value, options }) => res.cookies.set(name, value, options)),
+      setAll: (list) => list.forEach(({ name, value, options }) => res.cookies.set(name, value, hardenCookie(options))),
     },
   });
   // A Supabase outage or a wrong key must not take every page down: treat it as signed out.
