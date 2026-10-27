@@ -8,6 +8,7 @@ import {
 } from '@coach/core/shared';
 import type { GymExercise } from '@/components/gym/types';
 import { loadLibrary } from './library';
+import { allRows } from './paged';
 import type { Profile } from './profile';
 import type { supabaseServer } from './supabase/server';
 
@@ -101,14 +102,16 @@ export async function loadExcluded(sb: SB): Promise<Set<string>> {
 export async function loadHistory(sb: SB, slugs?: string[]): Promise<{ exposures: Map<string, Exposure[]>; bests: Map<string, Bests> }> {
   const { data: sessions } = await sb.from('workout_sessions').select('id, date, deload').eq('status', 'done');
   const byId = new Map((sessions ?? []).map((s) => [s.id, s]));
-  let q = sb.from('set_logs').select('slug, session_id, weight_kg, reps, rir, rep_min, rep_max, target_rir, logged_at')
-    .eq('is_warmup', false).order('logged_at');
-  if (slugs) q = q.in('slug', slugs);
-  const { data: sets } = await q;
+  const sets = await allRows((from, to) => {
+    let q = sb.from('set_logs').select('slug, session_id, weight_kg, reps, rir, rep_min, rep_max, target_rir, logged_at')
+      .eq('is_warmup', false).order('logged_at').order('id');
+    if (slugs) q = q.in('slug', slugs);
+    return q.range(from, to);
+  });
   const exposures = new Map<string, Exposure[]>();
   const all = new Map<string, LoggedSet[]>();
   const open = new Map<string, Exposure>();
-  for (const s of sets ?? []) {
+  for (const s of sets) {
     const session = byId.get(s.session_id);
     if (!session) continue; // active or deleted session
     const set: LoggedSet = { weight: Number(s.weight_kg), reps: s.reps, rir: s.rir == null ? null : Number(s.rir) };

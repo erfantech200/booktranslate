@@ -26,7 +26,15 @@ translator) is [`docs/AUDIT.md`](docs/AUDIT.md). Conventions and hard rules: [`C
   - a weekly meal plan written by the LLM as a background job, with portions scaled by code to ±5 % kcal and ±10 % protein, variety rules and a grocery list;
   - logging by "ate as planned", free text or photo (the model maps foods and grams, code computes macros, you confirm), daily rings and a one-tap meal swap.
 
-Phases 4–5 (see the spec) add progress tracking and the AI coach.
+- **Phase 4:**
+  - Progress tab with four sections: Overview, Strength, Body & photos, and Journey;
+  - a "gain quality" indicator: waist change per kg gained and the strength trend over 4 weeks. It is labelled as a proxy, never as kg of muscle;
+  - adherence over the last 4 weeks (workouts, protein days, calorie days) and logging streaks;
+  - e1RM charts for the main lifts, records, weekly tonnage, and weekly sets per muscle against the block's plan;
+  - measurements every 2 weeks; a photo camera that overlays the previous photo as a ghost; a photo compare view (side by side or slider);
+  - a timeline of the year.
+
+Phase 5 (see the spec) adds the AI coach.
 
 ## Repo
 
@@ -46,7 +54,12 @@ pnpm test        # unit tests
 pnpm db:test     # throwaway Postgres 16: every migration through the real runner, then queue + RLS tests
 pnpm typecheck
 pnpm dev         # needs .env.local (see .env.example)
+pnpm seed:dev -- --reset   # LOCAL database only: 8 weeks of realistic fake history for the only user (or --user=<id>)
 ```
+
+`seed:dev` refuses any `DATABASE_URL` that isn't localhost. It generates the history with the real engine
+(`packages/core/src/dev/fakeData.ts`): weigh-ins, measurements, two training blocks with progression, readiness and food logs.
+It does not create photos.
 
 ## Deploying
 

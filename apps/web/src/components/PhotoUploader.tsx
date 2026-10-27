@@ -9,7 +9,7 @@ type Angle = 'front' | 'side' | 'back';
 const ANGLES: Angle[] = ['front', 'side', 'back'];
 
 /** Downscale + re-encode in the browser: smaller upload, and the re-encode drops EXIF (GPS, device). */
-async function prepare(file: File): Promise<Blob> {
+export async function prepare(file: File | Blob): Promise<Blob> {
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   const scale = Math.min(1, COACH.photos.maxLongSidePx / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement('canvas');

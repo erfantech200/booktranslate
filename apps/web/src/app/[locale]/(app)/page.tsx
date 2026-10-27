@@ -5,9 +5,10 @@ import { planSummary } from '@/lib/plan';
 import { requireProfile } from '@/lib/profile';
 import { loadWeighIns } from '@/lib/weights';
 import { Link } from '@/i18n/navigation';
+import { loadMeasurements } from '@/lib/progress';
 import { localToday } from '@/lib/today';
 import { loadActiveMeso, loadSessions, weekView } from '@/lib/training';
-import { weekday } from '@coach/core/shared';
+import { measurementStatus, photoStatus, weekday } from '@coach/core/shared';
 import { MealCard } from '@/components/nutrition/MealCard';
 import { mealView } from '@/lib/mealView';
 import { ensureTargets, foodMap, loadDayLogs, loadPlan, sumLogs, weekStartOf } from '@/lib/nutrition';
@@ -22,9 +23,13 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
   const tn = await getTranslations('nutrition');
   const tw = await getTranslations('workout');
   const today = await localToday();
-  const [weighIns, block, { data: active }] = await Promise.all([
+  const [weighIns, block, { data: active }, measurements, { data: lastPhoto }] = await Promise.all([
     loadWeighIns(sb), loadActiveMeso(sb), sb.from('workout_sessions').select('id').eq('status', 'active').maybeSingle(),
+    loadMeasurements(sb), sb.from('progress_photos').select('taken_on').order('taken_on', { ascending: false }).limit(1).maybeSingle(),
   ]);
+  // Two-weekly measurement and photo reminders.
+  const measureDue = measurementStatus(measurements, today).due;
+  const photosDue = photoStatus(lastPhoto ? [lastPhoto.taken_on] : [], today).due;
   const s = planSummary(profile, weighIns, today);
   const [target, plan, logs, foods] = await Promise.all([
     ensureTargets(sb, user.id, profile, today), loadPlan(sb, weekStartOf(today)), loadDayLogs(sb, today), foodMap(),
@@ -72,6 +77,13 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
           </Link>
         ) : <p className="mt-1 text-sm text-muted">{tw('weekDone')}</p>}
       </section>
+
+      {(measureDue || photosDue) && (
+        <Link href={measureDue ? '/progress/body#measure' : '/progress/photos/new'} className="note note-warn flex items-center justify-between gap-3">
+          <span>{measureDue && photosDue ? t('dueBoth') : measureDue ? t('dueMeasure') : t('duePhotos')}</span>
+          <span className="shrink-0 font-bold">{t('dueGo')}</span>
+        </Link>
+      )}
 
       <WeighInCard recent={weighIns.slice(-14).map(({ date, weightKg }) => ({ date, weightKg }))} avg7={s.current} digits={d} />
 

@@ -32,6 +32,7 @@ pnpm typecheck    # tsc --noEmit across packages
 pnpm test         # vitest unit tests
 pnpm db:test      # throwaway Postgres 16: all migrations via the runner, then queue/RLS tests
 pnpm migrate      # runner CLI against $DATABASE_URL (--apply, --confirm=<file>)
+pnpm seed:dev     # dev only, localhost DATABASE_URL only: 8 weeks of fake history (--user, --weeks, --reset)
 ```
 
 ## Conventions
@@ -54,6 +55,13 @@ pnpm migrate      # runner CLI against $DATABASE_URL (--apply, --confirm=<file>)
   grams (`coachText/mealPlan.ts`, `coachText/foodParse.ts`, enum-constrained to catalogue ids); code computes
   every macro. Weekly plans are built by the `meal_plan` job. The owner's own LLM-estimated foods live in
   `foods` with `user_id` set and `estimated = true`.
+- Progress (spec §10): all analytics in `engine/progress.ts` (measurement and photo due dates, e1RM series, weekly
+  volume, sets per muscle against the block's plan, gain quality, adherence, streaks, the journey timeline); web loaders in
+  `apps/web/src/lib/progress.ts`. "Gain quality" is a labelled proxy (waist cm per kg gained + strength trend), never a
+  body-fat or kg-of-muscle figure. An exercise's first session is its baseline and is not shown as a record.
+- Lists that grow all year (`set_logs`, `food_logs`) are read with `allRows()` (`lib/paged.ts`): PostgREST
+  returns at most 1000 rows per request.
+- `packages/core/src/dev/` is dev-only (fake data + seeding); never import it from the app.
 - The owner's calendar date on the server comes from the `tz` cookie (`lib/today.ts`); in the browser use
   `isoToday()`.
 - Background work: add a handler in `packages/core/src/jobs/index.ts`; enqueue with `enqueue()`;

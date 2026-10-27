@@ -146,6 +146,31 @@ export const COACH = {
     projectionWindowDays: 28,
   },
 
+  // ─── Progress tracking (spec §10) ───────────────────────────────────────────────────────
+  progress: {
+    measurementEveryDays: 14, // waist, chest, arm, thigh every 2 weeks: slower changes drown in noise
+    photoDueDays: 14, // photos every 2–4 weeks: offered after 2 weeks …
+    photoOverdueDays: 28, // … and flagged after 4
+    // Gain quality ("muscle-vs-fat proxy"): waist growth per kg gained over the last 4 weeks.
+    // Lean gain in men usually adds ≤ ~0.5 cm of waist per kg; more than ~1 cm/kg is mostly fat.
+    qualityWindowDays: 28,
+    qualityMinWeightChangeKg: 0.4, // smaller changes are within the weekly noise of the trend
+    waistPerKgGood: 0.5,
+    waistPerKgWatch: 1.0,
+    // Strength over the same window, as the mean change of the main lifts' best e1RM.
+    strengthFlatPct: 0, // strength holding or rising while weight rises supports lean gain
+    // Adherence: a day "hits" protein at ≥ 90 % of target, calories within ±10 %.
+    proteinHitPct: 90,
+    kcalHitTolerancePct: 10,
+    weightMilestoneKg: 2, // a timeline milestone every 2 kg of trend gain
+    workoutMilestones: [1, 10, 25, 50, 100, 150, 200, 250],
+    // Accepted tape measurements in cm (the database bounds; anything outside is a typo).
+    measureCm: { waist: [40, 200], chest: [50, 200], arm: [15, 70], thigh: [30, 110] },
+    strengthCharts: 6, // e1RM small multiples on the Strength screen: the most-trained main lifts
+    volumeWeeks: 12, // weekly tonnage bars shown
+    adherenceWeeks: 4, // adherence summarizes the last 4 weeks, the same window as gain quality
+  },
+
   // ─── Onboarding input bounds (sanity checks, not targets) ───────────────────────────────
   profile: {
     ageMin: 16, // programming and nutrition rules here assume an adult

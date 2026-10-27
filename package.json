@@ -11,6 +11,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @coach/core test",
     "db:test": "bash scripts/db-test.sh",
-    "migrate": "pnpm --filter @coach/core migrate"
+    "migrate": "pnpm --filter @coach/core migrate",
+    "seed:dev": "pnpm --filter @coach/core seed:dev"
   }
 }
