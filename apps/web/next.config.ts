@@ -29,6 +29,8 @@ const config: NextConfig = {
   transpilePackages: ['@coach/core'],
   outputFileTracingRoot: repoRoot,
   serverExternalPackages: ['pg', 'sharp'],
+  // Meal photos reach the food-log action as a resized JPEG data URL (≤ ~1.4 MB, see parseFoodPhoto).
+  experimental: { serverActions: { bodySizeLimit: '2mb' } },
   // The migration runner reads supabase/migrations at runtime (computed path, invisible to the tracer).
   outputFileTracingIncludes: { '/api/admin/migrate': migrations, '/api/health': migrations },
   async headers() {

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
 import { type NextRequest } from 'next/server';
-import { exerciseSeedStatus, migrationStatus } from '@coach/core';
+import { migrationStatus, seedStatus } from '@coach/core';
 
 // Setup check: /api/health?key=<CRON_SECRET>. Shows ✅/❌ for every part the app depends on,
 // with a hint for each failure. Never prints secret values. Without the key, only the
@@ -103,12 +103,13 @@ export async function GET(req: NextRequest) {
         checks.push({ name: 'Migrations', ok: false, detail: clip(e) });
       }
       try {
-        const seed = await timed(exerciseSeedStatus());
-        checks.push({ name: 'Exercise library', ok: seed.missing.length === 0 && seed.changed.length === 0,
-          detail: `${seed.total - seed.missing.length} of ${seed.total} exercises${seed.changed.length ? `; ${seed.changed.length} out of date` : ''}`,
-          hint: 'Run /api/admin/migrate?key=…&apply=1 to sync the exercise seed.' });
+        for (const seed of await timed(seedStatus())) {
+          checks.push({ name: `Seed: ${seed.name}`, ok: seed.missing === 0 && seed.changed === 0,
+            detail: `${seed.total - seed.missing} of ${seed.total}${seed.changed ? `; ${seed.changed} out of date` : ''}`,
+            hint: 'Run /api/admin/migrate?key=…&apply=1 to sync the seeds.' });
+        }
       } catch (e) {
-        checks.push({ name: 'Exercise library', ok: false, detail: clip(e), hint: 'Apply the pending migrations first.' });
+        checks.push({ name: 'Seeds', ok: false, detail: clip(e), hint: 'Apply the pending migrations first.' });
       }
       const t = await client.query<{ name: string }>(
         `select table_name as name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by 1`);

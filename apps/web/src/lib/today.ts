@@ -14,3 +14,18 @@ export async function localToday(): Promise<string> {
   }
   return new Date().toISOString().slice(0, 10);
 }
+
+/** The owner's IANA time zone from the `tz` cookie (UTC until the browser has set it). */
+export async function localTimeZone(): Promise<string> {
+  const tz = (await cookies()).get('tz')?.value;
+  try {
+    if (tz) {
+      const z = decodeURIComponent(tz);
+      new Intl.DateTimeFormat('en', { timeZone: z });
+      return z;
+    }
+  } catch {
+    // Unknown zone name.
+  }
+  return 'UTC';
+}

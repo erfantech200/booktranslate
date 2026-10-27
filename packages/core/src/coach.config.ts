@@ -97,6 +97,43 @@ export const COACH = {
     },
   },
 
+  // ─── Nutrition (spec §9) ────────────────────────────────────────────────────────────────
+  nutrition: {
+    // TDEE = BMR × factor. Base factor from daily activity outside training (Mifflin-St Jeor
+    // multipliers), plus a little per weekly training day; clamped to the 1.4–1.7 range the spec gives.
+    activityBase: { sedentary: 1.35, light: 1.45, active: 1.6 },
+    perTrainingDay: 0.025, // a 60-min lifting session burns ≈ 200–300 kcal ≈ +0.025 of daily factor per weekly day
+    activityMin: 1.4,
+    activityMax: 1.75,
+    surplusKcal: 300, // starting surplus; the weekly check-in (Phase 5) tunes it to the gain rate
+    proteinGPerKg: 1.8, // muscle-gain sweet spot; range 1.6–2.2 g/kg
+    proteinRangeGPerKg: [1.6, 2.2] as [number, number],
+    proteinPerMealGPerKg: 0.4, // ≥ 0.4 g/kg per meal maximises muscle protein synthesis per sitting
+    fatGPerKg: 0.9, // middle of 0.8–1.0 g/kg
+    fatRangeGPerKg: [0.8, 1.0] as [number, number],
+    fatMinPctKcal: 20, // below ~20 % of energy, hormone health and fat-soluble vitamins suffer
+    fiberGPer1000Kcal: 14, // dietary guideline (14 g per 1000 kcal)
+    waterMlPerKg: 35,
+    waterTrainingMl: 500, // extra on training days for sweat losses
+    kcalRounding: 10, // targets shown to the nearest 10 kcal
+    plan: {
+      kcalTolerancePct: 5, // each planned day within ±5 % kcal of target
+      proteinTolerancePct: 10, // and ±10 % protein
+      maxSameMealPerWeek: 2, // variety: no identical meal more than twice a week
+      minProteinSourcesPerWeek: 4,
+      minCarbSourcesPerWeek: 3, // rotate rice, bread, potatoes, oats, pasta, bulgur …
+      minVegFruitServingsPerDay: 5,
+      vegFruitServingG: 80, // one serving of vegetables or fruit
+      scaleMin: 0.5, // portions are scaled to hit targets, never below half or above double
+      scaleMax: 2,
+      // Rough share of the day's kcal per meal slot, to guide the plan (code rescales anyway).
+      slotShare: { breakfast: 0.25, lunch: 0.3, dinner: 0.3, snack: 0.1, shake: 0.15 },
+    },
+    // End-of-day nudge: after this local hour, protein under this share of target gets a note.
+    nudgeAfterHour: 19,
+    lowProteinNudgePct: 75,
+  },
+
   // ─── Weigh-ins and trend (spec §10, §11) ────────────────────────────────────────────────
   weight: {
     // Daily weight swings 1–2 kg with water, glycogen and gut content; a 7-day average shows the trend.

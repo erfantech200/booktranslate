@@ -20,7 +20,13 @@ translator) is [`docs/AUDIT.md`](docs/AUDIT.md). Conventions and hard rules: [`C
   - gym mode (`/gym`): prefilled set logging that works offline, warm-ups, a rest timer, swaps, pain reports and PRs;
   - double progression, stall and early-deload detection, missed-session handling, and a finish summary with a short coach comment.
 
-Phases 3–5 (see the spec) add nutrition, progress tracking, and the AI coach.
+- **Phase 3:**
+  - a food database of 200 foods (USDA reference values, Persian staples) in `packages/core/src/data/foods.ts`;
+  - deterministic targets (Mifflin-St Jeor, activity factor, +300 kcal, protein 1.8 g/kg, fat, fiber, water);
+  - a weekly meal plan written by the LLM as a background job, with portions scaled by code to ±5 % kcal and ±10 % protein, variety rules and a grocery list;
+  - logging by "ate as planned", free text or photo (the model maps foods and grams, code computes macros, you confirm), daily rings and a one-tap meal swap.
+
+Phases 4–5 (see the spec) add progress tracking and the AI coach.
 
 ## Repo
 
@@ -57,7 +63,7 @@ The build container cannot reach the database, so production migrations run insi
 - `GET …&apply=1&confirm=<file.sql>`: also runs that destructive migration (only after the owner
   approves it).
 
-After applying, the exercise seed is synced into the `exercises` table: only changed rows are written.
+After applying, the reference seeds (exercises, foods) are synced into their tables: only changed rows are written.
 `pnpm migrate --apply` does the same locally.
 
 `/api/health?key=<CRON_SECRET>` checks the whole setup and lists table row counts.

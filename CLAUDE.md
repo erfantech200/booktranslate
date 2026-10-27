@@ -49,6 +49,11 @@ pnpm migrate      # runner CLI against $DATABASE_URL (--apply, --confirm=<file>)
   truth, synced into `exercises` by the migration runner (edit the seed, never the table). Web glue in
   `apps/web/src/lib/{training,workoutActions,library}.ts`; gym mode (`/gym`, `components/gym`) is local-first:
   sets get client UUIDs, live in localStorage and sync through `/api/workout/sync`.
+- Nutrition (spec §9): targets, portion scaler, variety rules and grocery list in `engine/nutrition.ts`; the food
+  seed in `packages/core/src/data/foods.ts` (macros per 100 g as eaten; edit there). The LLM only picks foods and
+  grams (`coachText/mealPlan.ts`, `coachText/foodParse.ts`, enum-constrained to catalogue ids); code computes
+  every macro. Weekly plans are built by the `meal_plan` job. The owner's own LLM-estimated foods live in
+  `foods` with `user_id` set and `estimated = true`.
 - The owner's calendar date on the server comes from the `tz` cookie (`lib/today.ts`); in the browser use
   `isoToday()`.
 - Background work: add a handler in `packages/core/src/jobs/index.ts`; enqueue with `enqueue()`;
@@ -67,7 +72,7 @@ pnpm migrate      # runner CLI against $DATABASE_URL (--apply, --confirm=<file>)
   runner (never edited after being applied; the health check flags changed checksums).
   New table ⇒ `user_id` column + RLS enabled + owner policies in the same migration (exceptions:
   service-only tables with no user, such as `login_attempts`: RLS on, no policies; and the shared
-  `exercises` library: authenticated may read, only the service role writes).
+  `exercises` and `foods` seeds: authenticated may read, only the service role writes seed rows).
   Destructive changes go in their own migration marked `-- @destructive`; before running one on
   production, show the owner the table list with row counts and wait for an explicit "yes".
 - Private buckets only, short-lived signed URLs (≤10 min). Photos: strip EXIF on upload.

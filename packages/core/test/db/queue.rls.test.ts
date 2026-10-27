@@ -12,8 +12,9 @@ describe.skipIf(!RUN)('migrations', () => {
   it('leave no translator tables, nothing pending, and re-running is a no-op', async () => {
     const tables = (await query<{ t: string }>(`select table_name as t from information_schema.tables where table_schema = 'public' order by 1`)).map((r) => r.t);
     expect(tables).toEqual([
-      'ai_usage', 'body_metrics', 'exercise_prefs', 'exercises', 'jobs', 'login_attempts', 'mesocycles', 'pain_reports', 'profile',
-      'program_days', 'program_exercises', 'progress_photos', 'readiness', 'schema_migrations', 'set_logs', 'workout_sessions',
+      'ai_usage', 'body_metrics', 'exercise_prefs', 'exercises', 'food_logs', 'foods', 'jobs', 'login_attempts', 'meal_items', 'meal_plans',
+      'meals', 'mesocycles', 'nutrition_targets', 'pain_reports', 'profile', 'program_days', 'program_exercises', 'progress_photos',
+      'readiness', 'schema_migrations', 'set_logs', 'workout_sessions',
     ]);
     expect((await migrationStatus()).pending).toEqual([]);
     expect(await applyMigrations()).toEqual({ applied: [] });

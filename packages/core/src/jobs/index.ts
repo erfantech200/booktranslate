@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { PermanentError, type JobContext } from './context';
+import { MealPlanPayload, runMealPlan } from './mealPlan';
 
 export * from './context';
 
@@ -10,7 +11,9 @@ export interface JobHandler<P> {
 
 // Background job types and their handlers. Features add theirs here (exercise image batches,
 // weekly meal plans, the weekly check-in). Unknown types fail permanently.
-const handlers: Record<string, JobHandler<any>> = {};
+const handlers: Record<string, JobHandler<any>> = {
+  meal_plan: { payload: MealPlanPayload, run: runMealPlan },
+};
 
 export const jobTypes = () => Object.keys(handlers);
 

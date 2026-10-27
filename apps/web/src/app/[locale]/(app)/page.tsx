@@ -7,20 +7,31 @@ import { loadWeighIns } from '@/lib/weights';
 import { Link } from '@/i18n/navigation';
 import { localToday } from '@/lib/today';
 import { loadActiveMeso, loadSessions, weekView } from '@/lib/training';
+import { weekday } from '@coach/core/shared';
+import { MealCard } from '@/components/nutrition/MealCard';
+import { mealView } from '@/lib/mealView';
+import { ensureTargets, foodMap, loadDayLogs, loadPlan, sumLogs, weekStartOf } from '@/lib/nutrition';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TodayPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const { sb, profile } = await requireProfile();
+  const { sb, user, profile } = await requireProfile();
   const t = await getTranslations('today');
+  const tn = await getTranslations('nutrition');
   const tw = await getTranslations('workout');
   const today = await localToday();
   const [weighIns, block, { data: active }] = await Promise.all([
     loadWeighIns(sb), loadActiveMeso(sb), sb.from('workout_sessions').select('id').eq('status', 'active').maybeSingle(),
   ]);
   const s = planSummary(profile, weighIns, today);
+  const [target, plan, logs, foods] = await Promise.all([
+    ensureTargets(sb, user.id, profile, today), loadPlan(sb, weekStartOf(today)), loadDayLogs(sb, today), foodMap(),
+  ]);
+  const eaten = sumLogs(logs);
+  const eatenMeals = new Set(logs.map((l) => l.mealId).filter(Boolean));
+  const todayMeals = plan?.status === 'ready' ? plan.meals.filter((m) => m.dayIdx === weekday(today)) : [];
   const view = block ? weekView(block.meso, block.days, await loadSessions(sb, block.meso.id), today) : null;
   const nextDay = view?.state.next ? block!.days[view.state.next.dayIdx] : null;
   const d = profile.digits;
@@ -76,9 +87,21 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
         <p className="field-hint">{t('goalNote')}</p>
       </section>
 
-      <section className="card">
-        <h2 className="card-title">{t('comingTitle')}</h2>
-        <p className="mt-1 text-sm text-muted">{t('coming')}</p>
+      <section className="card" aria-labelledby="nut-h">
+        <h2 id="nut-h" className="card-title">{t('nutritionTitle')}</h2>
+        <Link href="/nutrition" className="num mt-1 block text-sm text-muted">
+          {fmtNum(Math.round(eaten.kcal), d)} / {fmtNum(target.kcal, d)} {tn('kcalUnit')} · {fmtNum(Math.round(eaten.protein), d)} / {fmtNum(target.protein, d)} {tn('g')} {tn('protein')}
+        </Link>
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-label={tn('kcal')} aria-valuemin={0} aria-valuemax={target.kcal} aria-valuenow={Math.round(eaten.kcal)}>
+          <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, (eaten.kcal / target.kcal) * 100)}%` }} />
+        </div>
+        {todayMeals.length > 0 ? (
+          <ul className="mt-2 divide-y divide-line">
+            {todayMeals.map((m) => <MealCard key={m.id} meal={mealView(m, foods, d)} eaten={eatenMeals.has(m.id)} digits={d} compact />)}
+          </ul>
+        ) : (
+          <Link href="/nutrition" className="btn btn-secondary mt-3 w-full">{plan?.status === 'pending' ? tn('planPending') : tn('makePlan')}</Link>
+        )}
       </section>
     </div>
   );

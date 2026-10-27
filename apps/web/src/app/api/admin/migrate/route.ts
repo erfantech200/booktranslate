@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { applyMigrations, deleteBucket, exerciseSeedStatus, migrationStatus, serviceClient, syncExercises } from '@coach/core';
+import { applyMigrations, deleteBucket, migrationStatus, seedStatus, serviceClient, syncSeeds } from '@coach/core';
 
 // Database migrations for production (the build container can't reach the database).
 //   GET /api/admin/migrate?key=<CRON_SECRET>                      → status: applied + pending
 //   GET /api/admin/migrate?key=<CRON_SECRET>&apply=1              → apply pending, stop at a destructive one
 //   GET …&apply=1&confirm=<file.sql>                              → also run that destructive migration
-// After applying, the exercise library seed is synced (only changed rows are written).
+// After applying, the reference seeds (exercises, foods) are synced: only changed rows are written.
 // GET so it can be triggered from a browser; the key keeps it private.
 
 export const dynamic = 'force-dynamic';
@@ -30,17 +30,12 @@ export async function GET(req: NextRequest) {
       });
     }
     const s = await migrationStatus();
-    const hasLibrary = s.applied.some((m) => m.name.endsWith('_training.sql'));
-    let seed = null;
-    if (hasLibrary && p.get('apply') === '1' && !result?.stopped) {
-      const { written } = await syncExercises();
-      log.push(`exercise seed: ${written.length} written`);
-    }
-    if (hasLibrary) seed = await exerciseSeedStatus();
+    if (p.get('apply') === '1' && !result?.stopped) log.push(`seeds written: ${JSON.stringify(await syncSeeds())}`);
+    const seeds = await seedStatus();
     return NextResponse.json({
       result,
       log,
-      seed: seed && { total: seed.total, missing: seed.missing.length, changed: seed.changed.length },
+      seeds,
       applied: s.applied.map((m) => ({ name: m.name, at: m.applied_at, baseline: m.baseline, changedSinceApplied: m.changed })),
       pending: s.pending.map((m) => ({ name: m.name, destructive: m.destructive, deletesBuckets: m.deleteBuckets })),
     }, { status: result?.stopped && !result.stopped.reason.startsWith('destructive') ? 500 : 200, headers: { 'cache-control': 'no-store' } });
