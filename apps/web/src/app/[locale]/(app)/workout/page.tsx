@@ -8,8 +8,9 @@ import { fmtDate, fmtNum } from '@/lib/format';
 import { loadLibrary } from '@/lib/library';
 import { requireProfile } from '@/lib/profile';
 import { localToday } from '@/lib/today';
-import { earlyDeloadCheck, holdRampFor, isoMinusDays, loadActiveMeso, loadReadiness, loadSessions, mesoInfo, todayIsLow, weekView } from '@/lib/training';
-import { acceptEarlyDeload, createBlock, skipDay, startWorkout } from '@/lib/workoutActions';
+import { programLabel } from '@/lib/programLabel';
+import { earlyDeloadCheck, holdRampFor, isoMinusDays, loadActiveMeso, loadPrograms, loadReadiness, loadSessions, mesoInfo, todayIsLow, weekView } from '@/lib/training';
+import { acceptEarlyDeload, createBlock, discardWorkout, skipDay, startWorkout } from '@/lib/workoutActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,11 +19,26 @@ export default async function WorkoutPage({ params }: { params: Promise<{ locale
   setRequestLocale(locale);
   const { sb, profile } = await requireProfile();
   const t = await getTranslations('workout');
+  const tpr = await getTranslations('programs');
   const weekdays = (await getTranslations('profile')).raw('weekday') as string[];
   const d = profile.digits;
   const today = await localToday();
-  const block = await loadActiveMeso(sb);
-  const { data: active } = await sb.from('workout_sessions').select('id, plan->kinds').eq('status', 'active').maybeSingle();
+  const [block, programs, { data: active }] = await Promise.all([
+    loadActiveMeso(sb), loadPrograms(sb), sb.from('workout_sessions').select('id, plan->kinds').eq('status', 'active').maybeSingle(),
+  ]);
+  const program = programs.find((p) => p.active) ?? null;
+  const programsLink = (
+    <Link href="/workout/programs" className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-line px-3 py-1 text-sm hover:border-muted">
+      {program && <b className="truncate">{programLabel(program, tpr, d)}</b>}
+      <span className={program ? 'text-muted' : 'text-accent-text'}>{program ? `· ${t('programs')}` : t('programs')}</span>
+      <span aria-hidden="true" className="text-muted">‹</span>
+    </Link>
+  );
+  const cancelActive = active && (
+    <form action={discardWorkout.bind(null, active.id)} className="mt-2">
+      <ConfirmSubmit className="btn btn-ghost w-full text-sm text-danger" confirm={t('cancelWorkoutConfirm')}>{t('cancelWorkout')}</ConfirmSubmit>
+    </form>
+  );
 
   const libraryLink = (
     <Link href="/workout/library" className="card flex items-center justify-between gap-3 hover:border-muted">
@@ -35,6 +51,21 @@ export default async function WorkoutPage({ params }: { params: Promise<{ locale
     return (
       <div className="space-y-4 pt-2">
         <h1 className="text-3xl font-extrabold">{t('title')}</h1>
+        {programs.length > 0 && programsLink}
+        {active && (
+          <section className="card border-accent">
+            <h2 className="card-title">{t('resumeTitle')}</h2>
+            <Link href="/gym" className="btn btn-primary mt-4 w-full">{t('resume')}</Link>
+            {cancelActive}
+          </section>
+        )}
+        {!program && programs.length > 0 && (
+          <section className="card rise">
+            <h2 className="card-title">{t('noActiveTitle')}</h2>
+            <p className="mt-2 text-muted">{t('noActive')}</p>
+            <Link href="/workout/programs" className="btn btn-primary mt-4 w-full">{t('choosePrograms')}</Link>
+          </section>
+        )}
         <section className="card rise">
           <h2 className="card-title">{t('noBlockTitle')}</h2>
           <p className="mt-2 text-muted">{t('noBlock', { days: fmtNum(profile.days_per_week ?? 3, d), minutes: fmtNum(profile.session_minutes ?? 60, d) })}</p>
@@ -69,6 +100,7 @@ export default async function WorkoutPage({ params }: { params: Promise<{ locale
     <div className="space-y-4 pt-2">
       <header className="rise">
         <h1 className="text-3xl font-extrabold">{t('title')}</h1>
+        <div className="mt-2">{programsLink}</div>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
           <span>{t('block', { n: fmtNum(meso.blockNo, d) })}</span>
           <span className="num">{t('weekOf', { week: fmtNum(Math.min(view.weekNow, meso.weeks), d), weeks: fmtNum(meso.weeks, d) })}</span>
@@ -88,6 +120,7 @@ export default async function WorkoutPage({ params }: { params: Promise<{ locale
           <h2 className="card-title">{t('resumeTitle')}</h2>
           <p className="mt-1 text-muted">{((active as { kinds?: DayKind[] }).kinds ?? []).map(dayName).join(' + ')}</p>
           <Link href="/gym" className="btn btn-primary mt-4 w-full">{t('resume')}</Link>
+          {cancelActive}
         </section>
       )}
 
@@ -173,6 +206,34 @@ export default async function WorkoutPage({ params }: { params: Promise<{ locale
             </section>
           )}
           {!active && !next && <p className="card text-muted">{t('weekDone')}</p>}
+
+          {!active && days.length > 1 && (
+            <details className="card" open={!next}>
+              <summary className="cursor-pointer font-bold">{t('otherDay')}</summary>
+              <p className="field-hint">{t('otherDayHint')}</p>
+              <ul className="mt-3 divide-y divide-line border-t border-line">
+                {days.filter((day) => day.idx !== next?.dayIdx).map((day) => {
+                  const doneNow = view.handled.has(day.idx);
+                  return (
+                    <li key={day.id}>
+                      <form action={startWorkout} className="flex items-center justify-between gap-3 py-2.5">
+                        <LocalDate fallback={today} />
+                        <input type="hidden" name="day" value={day.idx} />
+                        {low && <input type="hidden" name="dropLastSet" value="1" />}
+                        <span className="min-w-0">
+                          <b className="block">{dayName(day.kind)}</b>
+                          <span className="text-xs text-muted">
+                            {t('exercisesCount', { n: fmtNum(day.exercises.length, d) })}{doneNow ? ` · ${t('doneThisWeek')}` : ''}
+                          </span>
+                        </span>
+                        <ConfirmSubmit className="btn btn-secondary min-h-10 shrink-0 px-4">{t('startThis')}</ConfirmSubmit>
+                      </form>
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
+          )}
 
           <ReadinessCard today={today} low={low} digits={d}
             entry={todayReady ? { sleepHours: todayReady.sleepHours, energy: todayReady.energy, soreness: todayReady.soreness } : null} />

@@ -44,6 +44,10 @@ export function useGymState(init: { sessionId: string; plan: SessionPlan & { rev
       const plan = saved.plan.exercises.length === init.plan.exercises.length ? saved.plan : init.plan;
       setS({ ...saved, plan, sets: [...saved.sets, ...extra] });
     }
+    // Only one workout is ever running: anything else stored is from a finished or cancelled one.
+    try {
+      for (const k of Object.keys(localStorage)) if (k.startsWith('gym:') && k !== key(init.sessionId)) localStorage.removeItem(k);
+    } catch { /* private mode */ }
     setOnline(navigator.onLine);
     setReady(true);
   }, [init.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -30,6 +30,21 @@ export interface Meso {
   trainingDays: number[];
   missing: string[];
   createdAt: string;
+  programId: string | null;
+  pausedAt: string | null;
+}
+
+/** A training program: its own schedule and equipment; its blocks are built from them. */
+export interface Program {
+  id: string;
+  name: string | null;
+  active: boolean;
+  trainLocation: 'gym' | 'home';
+  equipment: string[];
+  daysPerWeek: number;
+  sessionMinutes: number;
+  preferredDays: number[];
+  createdAt: string;
 }
 export interface PEx { id: string; idx: number; slug: string; role: Role; sets: number[]; reps: [number, number]; restSec: number; replacedFrom: string | null }
 export interface PDay { id: string; idx: number; kind: DayKind; exercises: PEx[] }
@@ -53,6 +68,7 @@ const mesoOf = (r: any): Meso => ({
   id: r.id, seq: r.seq, blockNo: r.block_no, startDate: r.start_date, weeks: r.weeks, deloadWeek: r.deload_week,
   earlyDeloadReason: r.early_deload_reason, daysPerWeek: r.days_per_week, sessionMinutes: r.session_minutes,
   trainingDays: r.training_days, missing: r.missing_patterns, createdAt: r.created_at,
+  programId: r.program_id ?? null, pausedAt: r.paused_at ?? null,
 });
 export const sessionOf = (r: any): SessionRow => ({
   id: r.id, week: r.week, dayIdx: r.day_idx, mergedDayIdx: r.merged_day_idx, date: r.date, status: r.status, deload: r.deload,
@@ -61,8 +77,46 @@ export const sessionOf = (r: any): SessionRow => ({
 });
 export const mesoInfo = (m: Meso): MesoInfo => ({ seq: m.blockNo, startDate: m.startDate, weeks: m.weeks, deloadWeek: m.deloadWeek });
 
+export const programOf = (r: any): Program => ({
+  id: r.id, name: r.name, active: r.active, trainLocation: r.train_location, equipment: r.equipment, daysPerWeek: r.days_per_week,
+  sessionMinutes: r.session_minutes, preferredDays: r.preferred_days, createdAt: r.created_at,
+});
+
+export async function loadPrograms(sb: SB): Promise<Program[]> {
+  const { data, error } = await sb.from('programs').select('*').order('created_at');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(programOf);
+}
+
+export async function loadActiveProgram(sb: SB): Promise<Program | null> {
+  const { data } = await sb.from('programs').select('*').eq('active', true).maybeSingle();
+  return data ? programOf(data) : null;
+}
+
+/** The program's settings as the profile's training fields (the profile mirrors the active program). */
+export const programProfileFields = (p: Pick<Program, 'trainLocation' | 'equipment' | 'daysPerWeek' | 'sessionMinutes' | 'preferredDays'>) => ({
+  train_location: p.trainLocation, equipment: p.trainLocation === 'gym' ? [] : p.equipment,
+  days_per_week: p.daysPerWeek, session_minutes: p.sessionMinutes, preferred_days: p.preferredDays,
+});
+
+/** The active program, or a new active one made from the profile's settings when there is none. */
+export async function ensureActiveProgram(sb: SB, userId: string, profile: Profile): Promise<Program> {
+  const cur = await loadActiveProgram(sb);
+  if (cur) return cur;
+  const { data, error } = await sb.from('programs').insert({
+    user_id: userId, active: true, train_location: profile.train_location ?? 'gym',
+    equipment: profile.train_location === 'home' ? profile.equipment : [],
+    days_per_week: profile.days_per_week ?? 3, session_minutes: profile.session_minutes ?? 60, preferred_days: profile.preferred_days,
+  }).select('*').single();
+  if (error || !data) throw new Error(error?.message ?? 'program insert failed');
+  return programOf(data);
+}
+
+/** The current block of the active program, with its days and exercises. */
 export async function loadActiveMeso(sb: SB): Promise<{ meso: Meso; days: PDay[] } | null> {
-  const { data: m } = await sb.from('mesocycles').select('*').eq('status', 'active').maybeSingle();
+  const program = await loadActiveProgram(sb);
+  if (!program) return null;
+  const { data: m } = await sb.from('mesocycles').select('*').eq('program_id', program.id).eq('status', 'active').maybeSingle();
   if (!m) return null;
   const { data: days, error } = await sb.from('program_days')
     .select('id, idx, kind, program_exercises(id, idx, slug, role, sets_by_week, rep_min, rep_max, rest_sec, replaced_from)')
@@ -77,6 +131,12 @@ export async function loadActiveMeso(sb: SB): Promise<{ meso: Meso; days: PDay[]
       })),
     })),
   };
+}
+
+/** Each program's current block (for the program list): week now, length, block number. */
+export async function loadProgramBlocks(sb: SB): Promise<Map<string, Meso>> {
+  const { data } = await sb.from('mesocycles').select('*').eq('status', 'active').not('program_id', 'is', null);
+  return new Map((data ?? []).map((r: any) => [r.program_id as string, mesoOf(r)]));
 }
 
 export async function loadSessions(sb: SB, mesoId: string): Promise<SessionRow[]> {
@@ -139,17 +199,25 @@ export function eligibilityFor(profile: Profile, excluded: ReadonlySet<string>, 
 }
 
 /**
- * Close the active block (if any) and build the next one from the profile. `completed` = the
- * previous block ran its course (the training block number advances); `rebuilt` = settings
- * changed mid-block (the block number stays, so technique weeks and difficulty don't jump).
+ * Close the program's current block (if any) and build the next one from the program's settings.
+ * `completed` = the previous block ran its course (the training block number advances); `rebuilt`
+ * = settings changed mid-block (the block number stays, so technique weeks and difficulty don't
+ * jump); `first` = a program's first block: it carries on from the highest block number trained in
+ * any program (training age doesn't reset because the plan changed).
  */
-export async function buildBlock(sb: SB, userId: string, profile: Profile, today: string, reason: 'completed' | 'rebuilt' | 'first'): Promise<string> {
-  const [library, excluded, { data: last }] = await Promise.all([
+export async function buildBlock(sb: SB, userId: string, profile: Profile, program: Program, today: string, reason: 'completed' | 'rebuilt' | 'first'): Promise<string> {
+  const [library, excluded, { data: top }, { data: last }] = await Promise.all([
     loadLibrary(), loadExcluded(sb),
-    sb.from('mesocycles').select('id, seq, block_no, status').order('seq', { ascending: false }).limit(1).maybeSingle(),
+    sb.from('mesocycles').select('seq, block_no').order('seq', { ascending: false }).limit(1).maybeSingle(),
+    sb.from('mesocycles').select('id, seq, block_no, status').eq('program_id', program.id).order('seq', { ascending: false }).limit(1).maybeSingle(),
   ]);
-  const seq = (last?.seq ?? 0) + 1;
-  const blockNo = !last ? 1 : reason === 'rebuilt' ? last.block_no : last.block_no + 1;
+  const seq = (top?.seq ?? 0) + 1;
+  let blockNo = 1;
+  if (last) blockNo = reason === 'rebuilt' ? last.block_no : last.block_no + 1;
+  else if (top) {
+    const { data: most } = await sb.from('mesocycles').select('block_no').order('block_no', { ascending: false }).limit(1).maybeSingle();
+    blockNo = most?.block_no ?? 1;
+  }
 
   // Stalled lifts of the last block go to the back of the queue (spec §6: swap at the next block).
   const avoid = new Set<string>();
@@ -160,32 +228,37 @@ export async function buildBlock(sb: SB, userId: string, profile: Profile, today
     for (const s of slugs) if (isStalled(exposures.get(s) ?? [])) avoid.add(s);
   }
 
-  const program = generateProgram({
+  const settings = { ...profile, ...programProfileFields(program) };
+  const generated = generateProgram({
     experience: profile.experience ?? 'none',
-    daysPerWeek: profile.days_per_week ?? 3,
-    sessionMinutes: profile.session_minutes ?? 60,
+    daysPerWeek: program.daysPerWeek,
+    sessionMinutes: program.sessionMinutes,
     library,
-    eligibility: eligibilityFor(profile, excluded, blockNo),
+    eligibility: eligibilityFor(settings, excluded, blockNo),
     avoid,
   });
 
-  if (last?.status === 'active') {
+  const wasActive = last?.status === 'active';
+  if (last && wasActive) {
     const { error } = await sb.from('mesocycles').update({ status: 'done', ended_reason: reason === 'rebuilt' ? 'rebuilt' : 'completed', ended_at: new Date().toISOString() }).eq('id', last.id);
     if (error) throw new Error(error.message);
   }
   const { data: meso, error } = await sb.from('mesocycles').insert({
-    user_id: userId, seq, block_no: blockNo, start_date: today, weeks: program.weeks, deload_week: program.weeks,
-    days_per_week: profile.days_per_week ?? 3, session_minutes: profile.session_minutes ?? 60,
-    training_days: trainingDays(profile.days_per_week ?? 3, profile.preferred_days), missing_patterns: program.missing,
+    user_id: userId, program_id: program.id, seq, block_no: blockNo, start_date: today, weeks: generated.weeks, deload_week: generated.weeks,
+    days_per_week: program.daysPerWeek, session_minutes: program.sessionMinutes,
+    training_days: trainingDays(program.daysPerWeek, program.preferredDays), missing_patterns: generated.missing,
   }).select('id').single();
-  if (error || !meso) throw new Error(error?.message ?? 'mesocycle insert failed');
+  if (error || !meso) {
+    if (last && wasActive) await sb.from('mesocycles').update({ status: 'active', ended_reason: null, ended_at: null }).eq('id', last.id);
+    throw new Error(error?.message ?? 'mesocycle insert failed');
+  }
 
   try {
     const { data: days, error: e1 } = await sb.from('program_days')
-      .insert(program.days.map((d, idx) => ({ user_id: userId, mesocycle_id: meso.id, idx, kind: d.kind }))).select('id, idx');
+      .insert(generated.days.map((d, idx) => ({ user_id: userId, mesocycle_id: meso.id, idx, kind: d.kind }))).select('id, idx');
     if (e1 || !days) throw new Error(e1?.message ?? 'program_days insert failed');
     const dayId = new Map(days.map((d) => [d.idx, d.id]));
-    const rows = program.days.flatMap((d, di) => d.exercises.map((x, idx) => ({
+    const rows = generated.days.flatMap((d, di) => d.exercises.map((x, idx) => ({
       user_id: userId, program_day_id: dayId.get(di), idx, slug: x.slug, role: x.role, sets_by_week: x.sets,
       rep_min: x.reps[0], rep_max: x.reps[1], rest_sec: x.restSec,
     })));
@@ -194,7 +267,7 @@ export async function buildBlock(sb: SB, userId: string, profile: Profile, today
   } catch (err) {
     // Roll back by hand (no multi-statement transactions through the API).
     await sb.from('mesocycles').delete().eq('id', meso.id);
-    if (last?.status === 'active') await sb.from('mesocycles').update({ status: 'active', ended_reason: null, ended_at: null }).eq('id', last.id);
+    if (last && wasActive) await sb.from('mesocycles').update({ status: 'active', ended_reason: null, ended_at: null }).eq('id', last.id);
     throw err;
   }
   return meso.id;

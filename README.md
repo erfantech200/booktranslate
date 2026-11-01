@@ -19,6 +19,8 @@ translator) is [`docs/AUDIT.md`](docs/AUDIT.md). Conventions and hard rules: [`C
   - a deterministic program generator: 3–6 day splits, 5-week blocks with a deload, volume and session-length fitting;
   - gym mode (`/gym`): prefilled set logging that works offline, warm-ups, a rest timer, swaps, pain reports and PRs;
   - double progression, stall and early-deload detection, missed-session handling, and a finish summary with a short coach comment.
+  - several training programs side by side (e.g. gym and home, `/workout/programs`): one is active, a paused one resumes on the day it
+    left off; any day of the active program can be trained instead of the suggested one, and a running workout can be cancelled.
 
 - **Phase 3:**
   - a food database of 200 foods (USDA reference values, Persian staples) in `packages/core/src/data/foods.ts`;

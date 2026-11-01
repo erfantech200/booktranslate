@@ -28,6 +28,15 @@ export const weekOf = (startDate: string, date: string) => Math.floor((toDay(dat
 
 export const weekStart = (startDate: string, week: number) => addDays(startDate, (week - 1) * 7);
 
+/**
+ * Days to move a paused block's start date forward when its program becomes active again: the
+ * pause doesn't count, so the block picks up on the same day of the same week it left off.
+ * (Block weeks are 7-day windows from the start date, which can be any weekday already.)
+ */
+export function resumeShiftDays(pausedAt: string, today: string): number {
+  return Math.max(0, toDay(today) - toDay(pausedAt));
+}
+
 /** Planned date of each program day in a week: the training weekdays of that window, in order. */
 export function plannedDates(startDate: string, week: number, days: readonly number[], programDays: number): string[] {
   const from = weekStart(startDate, week);

@@ -169,7 +169,7 @@ export function streak(dates: readonly string[], today: string): number {
 // ─── Journey timeline ─────────────────────────────────────────────────────────────────────
 export type TimelineEvent =
   | { date: string; kind: 'start'; weightKg: number }
-  | { date: string; kind: 'block'; blockNo: number; end: string | null }
+  | { date: string; kind: 'block'; blockNo: number; end: string | null; program: string | null }
   | { date: string; kind: 'prs'; items: { slug: string; weight: number; reps: number }[] }
   | { date: string; kind: 'photos'; angles: string[] }
   | { date: string; kind: 'weight'; kg: number; gained: number }
@@ -180,14 +180,15 @@ export function timeline(o: {
   startDate: string;
   startWeightKg: number;
   weighIns: readonly WeighIn[];
-  blocks: readonly { blockNo: number; start: string; end: string | null }[];
+  /** `program`: the program's label, set only when the owner has trained in more than one. */
+  blocks: readonly { blockNo: number; start: string; end: string | null; program?: string | null }[];
   prs: readonly { date: string; slug: string; weight: number; reps: number }[];
   photos: readonly { date: string; angle: string }[];
   workouts: readonly string[];
   measurements: readonly Measurement[];
 }): TimelineEvent[] {
   const ev: TimelineEvent[] = [{ date: o.startDate, kind: 'start', weightKg: o.startWeightKg }];
-  for (const b of o.blocks) ev.push({ date: b.start, kind: 'block', blockNo: b.blockNo, end: b.end });
+  for (const b of o.blocks) ev.push({ date: b.start, kind: 'block', blockNo: b.blockNo, end: b.end, program: b.program ?? null });
   // Beginners set records nearly every session, so records are gathered per calendar week: one
   // entry (dated at the week's last record) listing each exercise once, with its heaviest set.
   const weeks = new Map<string, { date: string; items: Map<string, { slug: string; weight: number; reps: number }> }>();

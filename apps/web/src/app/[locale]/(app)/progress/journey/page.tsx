@@ -5,6 +5,7 @@ import { IconCamera, IconFlag, IconRuler, IconScale, IconTrophy, IconWorkout } f
 import { ProgressHeader } from '@/components/progress/ProgressNav';
 import { fmtDate, fmtNum } from '@/lib/format';
 import { librarySlugMap } from '@/lib/library';
+import { programLabel } from '@/lib/programLabel';
 import { requireProfile } from '@/lib/profile';
 import { firstTimes, loadBlocks, loadMeasurements, loadPhotoIndex, loadPRs, loadWorkSets, signPhotos } from '@/lib/progress';
 import { loadWeighIns } from '@/lib/weights';
@@ -22,13 +23,17 @@ export default async function JourneyPage({ params }: { params: Promise<{ locale
   const { sb, profile } = await requireProfile();
   const t = await getTranslations('progress.journey');
   const ts = await getTranslations('progress.strength');
+  const tpr = await getTranslations('programs');
   const d = profile.digits;
   const [weighIns, measurements, { sets, sessions }, prs, blocks, photos, bySlug] = await Promise.all([
     loadWeighIns(sb), loadMeasurements(sb), loadWorkSets(sb), loadPRs(sb), loadBlocks(sb), loadPhotoIndex(sb), librarySlugMap(),
   ]);
   const first = firstTimes(sets);
+  // Name the program on block events only once there has been more than one.
+  const labels = blocks.map((b) => (b.program ? programLabel(b.program, tpr, d) : null));
+  const several = new Set(labels.filter(Boolean)).size > 1;
   const events = timeline({
-    startDate: profile.start_date!, startWeightKg: profile.start_weight_kg!, weighIns, blocks, prs: prs.filter((p) => first.get(p.slug) !== p.date),
+    startDate: profile.start_date!, startWeightKg: profile.start_weight_kg!, weighIns, blocks: blocks.map((b, i) => ({ ...b, program: several ? labels[i] : null })), prs: prs.filter((p) => first.get(p.slug) !== p.date),
     photos: photos.map((p) => ({ date: p.date, angle: p.angle })), workouts: sessions.map((s) => s.date), measurements,
   });
   // A front-view thumbnail for each photo day.
@@ -45,7 +50,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ locale
   const text = (e: TimelineEvent) => {
     switch (e.kind) {
       case 'start': return t('start', { kg: fmtNum(e.weightKg, d) });
-      case 'block': return t('block', { n: fmtNum(e.blockNo, d) });
+      case 'block': return e.program ? t('blockIn', { n: fmtNum(e.blockNo, d), program: e.program }) : t('block', { n: fmtNum(e.blockNo, d) });
       case 'prs': return t('prs', { n: fmtNum(e.items.length, d) });
       case 'photos': return t('photos');
       case 'weight': return t('weight', { gained: fmtNum(e.gained, d), kg: fmtNum(e.kg, d) });

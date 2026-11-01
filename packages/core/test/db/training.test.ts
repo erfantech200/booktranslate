@@ -41,13 +41,21 @@ describe.skipIf(!RUN)('training tables', () => {
   it('keep each owner to their own rows and log sets idempotently', async () => {
     const a = await createUser('train-a@example.com');
     const b = await createUser('train-b@example.com');
-    const meso = randomUUID(), session = randomUUID(), set = randomUUID();
+    const meso = randomUUID(), session = randomUUID(), set = randomUUID(), gym = randomUUID(), home = randomUUID();
     await asUser(a, 'train-a@example.com', async (q) => {
-      await q(`insert into public.mesocycles (id, seq, block_no, start_date, weeks, deload_week, days_per_week, session_minutes, training_days)
-               values ($1, 1, 1, '2026-10-24', 5, 5, 3, 60, '{0,2,4}')`, [meso]);
-      // Only one active block.
-      await expect(q(`insert into public.mesocycles (seq, block_no, start_date, weeks, deload_week, days_per_week, session_minutes, training_days)
-               values (2, 1, '2026-10-24', 5, 5, 3, 60, '{0,2,4}')`)).rejects.toThrow(/mesocycles_one_active/);
+      await q(`insert into public.programs (id, active, train_location, days_per_week, session_minutes) values ($1, true, 'gym', 3, 60)`, [gym]);
+      // One active program per owner; others wait paused.
+      await expect(q(`insert into public.programs (active, train_location, days_per_week, session_minutes) values (true, 'home', 3, 45)`))
+        .rejects.toThrow(/programs_one_active/);
+      await q(`insert into public.programs (id, train_location, equipment, days_per_week, session_minutes) values ($1, 'home', '{dumbbells}', 3, 45)`, [home]);
+      await q(`insert into public.mesocycles (id, program_id, seq, block_no, start_date, weeks, deload_week, days_per_week, session_minutes, training_days)
+               values ($1, $2, 1, 1, '2026-10-24', 5, 5, 3, 60, '{0,2,4}')`, [meso, gym]);
+      // One active block per program …
+      await expect(q(`insert into public.mesocycles (program_id, seq, block_no, start_date, weeks, deload_week, days_per_week, session_minutes, training_days)
+               values ($1, 2, 1, '2026-10-24', 5, 5, 3, 60, '{0,2,4}')`, [gym])).rejects.toThrow(/mesocycles_one_active/);
+      // … but each program keeps its own (the paused one stays where it was).
+      await q(`insert into public.mesocycles (program_id, seq, block_no, start_date, weeks, deload_week, days_per_week, session_minutes, training_days, paused_at)
+               values ($1, 2, 1, '2026-10-24', 5, 5, 3, 45, '{0,2,4}', '2026-10-26')`, [home]);
       await q(`insert into public.workout_sessions (id, mesocycle_id, week, day_idx, date, started_at) values ($1, $2, 1, 0, '2026-10-24', now())`, [session, meso]);
       const log = `insert into public.set_logs (id, session_id, slug, ex_idx, set_idx, weight_kg, reps, rir)
                    values ($1, $2, 'goblet-squat', 0, 0, 20, 10, 3) on conflict (id) do nothing`;
@@ -57,12 +65,17 @@ describe.skipIf(!RUN)('training tables', () => {
       await q(`insert into public.readiness (date, sleep_hours, energy, soreness) values ('2026-10-24', 7, 4, 2)`);
       await q(`insert into public.pain_reports (date, slug, area, level) values ('2026-10-24', 'goblet-squat', 'knee', 2)`);
       await q(`insert into public.exercise_prefs (slug, excluded, excluded_reason) values ('goblet-squat', true, 'pain')`);
+      // Deleting a program keeps its finished history: the block loses the link instead of going.
+      await q(`update public.workout_sessions set status = 'done' where id = $1`, [session]);
+      await q(`delete from public.programs where id = $1`, [gym]);
+      expect((await q(`select program_id from public.mesocycles where id = $1`, [meso]))[0].program_id).toBeNull();
+      expect((await q('select count(*)::int as n from public.set_logs'))[0].n).toBe(1);
       // Writing rows for someone else is refused.
       await expect(q(`insert into public.readiness (user_id, date) values ($1, '2026-10-25')`, [b])).rejects.toThrow(/row-level security/);
 
       // Commit nothing (asUser rolls back); check visibility inside the same transaction as B below instead.
       await q(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: b, role: 'authenticated' })]);
-      for (const t of ['mesocycles', 'workout_sessions', 'set_logs', 'readiness', 'pain_reports', 'exercise_prefs']) {
+      for (const t of ['programs', 'mesocycles', 'workout_sessions', 'set_logs', 'readiness', 'pain_reports', 'exercise_prefs']) {
         expect((await q(`select count(*)::int as n from public.${t}`))[0].n, t).toBe(0);
       }
     });

@@ -50,6 +50,12 @@ pnpm seed:dev     # dev only, localhost DATABASE_URL only: 8 weeks of fake histo
   truth, synced into `exercises` by the migration runner (edit the seed, never the table). Web glue in
   `apps/web/src/lib/{training,workoutActions,library}.ts`; gym mode (`/gym`, `components/gym`) is local-first:
   sets get client UUIDs, live in localStorage and sync through `/api/workout/sync`.
+- Programs: the owner can keep several (`programs`, one `active`); each holds its own location, equipment and schedule,
+  and its blocks (`mesocycles.program_id`) are built from it. The profile's training fields mirror the ACTIVE program
+  (switching copies them in; Settings writes them back), so nutrition and adherence keep reading the profile. A paused
+  program's block stores `paused_at`; on resume its `start_date` moves forward by the pause (`resumeShiftDays`).
+  Deleting a program keeps blocks that hold finished workouts (closed as `deleted`, unlinked). Actions in
+  `lib/programActions.ts`; no program switch while a workout is running.
 - Nutrition (spec §9): targets, portion scaler, variety rules and grocery list in `engine/nutrition.ts`; the food
   seed in `packages/core/src/data/foods.ts` (macros per 100 g as eaten; edit there). The LLM only picks foods and
   grams (`coachText/mealPlan.ts`, `coachText/foodParse.ts`, enum-constrained to catalogue ids); code computes

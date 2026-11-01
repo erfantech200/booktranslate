@@ -72,8 +72,14 @@ export async function saveSettings(raw: unknown): Promise<SaveResult> {
   const parsed = SettingsInput.safeParse(normalizeDigits(raw));
   if (!parsed.success) return { ok: false, issues: issuesOf(parsed.error) };
   const { sb, user } = await loadProfile();
-  const { error } = await sb.from('profile').update(profileRow(parsed.data, new Date().toISOString().slice(0, 10))).eq('user_id', user.id);
+  const row = profileRow(parsed.data, new Date().toISOString().slice(0, 10));
+  const { error } = await sb.from('profile').update(row).eq('user_id', user.id);
   if (error) throw new Error(error.message);
+  // The training fields belong to the active program (the profile mirrors it).
+  await sb.from('programs').update({
+    train_location: row.train_location, equipment: row.equipment, days_per_week: row.days_per_week,
+    session_minutes: row.session_minutes, preferred_days: row.preferred_days,
+  }).eq('active', true);
   revalidatePath('/', 'layout');
   return { ok: true };
 }

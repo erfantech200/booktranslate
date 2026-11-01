@@ -81,3 +81,12 @@ export const BODY_FIELDS = ['weightKg', 'waistCm', 'chestCm', 'armCm', 'thighCm'
 /** Settings: the same fields minus body measurements (those change through weigh-ins). */
 export const SettingsInput = ProfileFields.omit({ weightKg: true, waistCm: true, chestCm: true, armCm: true, thighCm: true }).superRefine(rules);
 export type SettingsInput = z.infer<typeof SettingsInput>;
+
+/**
+ * A training program's own settings (several can exist side by side, e.g. gym and home). Experience,
+ * injuries and dumbbell range stay on the profile: they describe the person, not the plan.
+ */
+export const ProgramSettingsInput = ProfileFields.pick({ trainLocation: true, equipment: true, daysPerWeek: true, sessionMinutes: true, preferredDays: true })
+  .extend({ name: z.string().trim().max(60).optional().transform((s) => (s ? s : undefined)) })
+  .superRefine(rules);
+export type ProgramSettingsInput = z.infer<typeof ProgramSettingsInput>;

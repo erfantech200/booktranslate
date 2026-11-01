@@ -6,7 +6,7 @@ import type { FakeData } from './fakeData';
 
 /** Insert order respects foreign keys; clearing runs it backwards. */
 export const FAKE_TABLES = [
-  'profile', 'body_metrics', 'mesocycles', 'program_days', 'program_exercises', 'workout_sessions', 'set_logs',
+  'profile', 'body_metrics', 'programs', 'mesocycles', 'program_days', 'program_exercises', 'workout_sessions', 'set_logs',
   'readiness', 'nutrition_targets', 'food_logs',
 ] as const satisfies readonly (keyof FakeData)[];
 

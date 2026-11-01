@@ -17,6 +17,7 @@ type Row = Record<string, unknown>;
 export interface FakeData {
   profile: Row;
   body_metrics: Row[];
+  programs: Row[];
   mesocycles: Row[];
   program_days: Row[];
   program_exercises: Row[];
@@ -89,6 +90,11 @@ export function fakeData(o: {
 
   // ─── Training: two blocks run through the engine ──────────────────────────────────────
   const bySlug = new Map(o.library.map((e) => [e.slug, e]));
+  const programId = R.uuid();
+  const programs: Row[] = [{
+    id: programId, user_id: o.userId, name: null, active: true, train_location: 'gym', equipment: [], days_per_week: 4, session_minutes: 60,
+    preferred_days: days, created_at: `${start}T07:00:00Z`,
+  }];
   const mesocycles: Row[] = [], program_days: Row[] = [], program_exercises: Row[] = [], workout_sessions: Row[] = [], set_logs: Row[] = [];
   const history = new Map<string, Exposure[]>();
   const bests = new Map<string, Bests>();
@@ -106,7 +112,7 @@ export function fakeData(o: {
     const mesoId = R.uuid();
     const active = bi === blockWeeks.filter((x) => x > 0).length - 1;
     mesocycles.push({
-      id: mesoId, user_id: o.userId, seq: blockNo, block_no: blockNo, start_date: blockStart, weeks: program.weeks, deload_week: program.weeks,
+      id: mesoId, user_id: o.userId, program_id: programId, seq: blockNo, block_no: blockNo, start_date: blockStart, weeks: program.weeks, deload_week: program.weeks,
       status: active ? 'active' : 'done', ended_reason: active ? null : 'completed', days_per_week: 4, session_minutes: 60,
       training_days: days, missing_patterns: program.missing, created_at: `${blockStart}T07:00:00Z`, ended_at: active ? null : `${addDays(blockStart, bw * 7)}T07:00:00Z`,
     });
@@ -207,5 +213,5 @@ export function fakeData(o: {
       }
     });
   }
-  return { profile, body_metrics, mesocycles, program_days, program_exercises, workout_sessions, set_logs, readiness, nutrition_targets, food_logs };
+  return { profile, body_metrics, programs, mesocycles, program_days, program_exercises, workout_sessions, set_logs, readiness, nutrition_targets, food_logs };
 }

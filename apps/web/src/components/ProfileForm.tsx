@@ -158,6 +158,7 @@ export function ProfileForm({ mode, initial, currentWeightKg, startWeightKg }: {
           </>}
 
           {section === 'training' && <>
+            {mode === 'page' && <p className="note note-info">{t('programHint')}</p>}
             <Chips label={t('experience')} name="experience" value={str('experience')} onChange={(x) => set('experience', x)} error={errors.experience}
               options={EXPERIENCE.map((e) => [e, t(`exp.${e}`)])} />
             <Chips label={t('location')} name="trainLocation" value={str('trainLocation')} onChange={(x) => set('trainLocation', x)} error={errors.trainLocation}
@@ -288,7 +289,7 @@ type ChipProps = { label: string; hint?: string; name: string; error?: string; o
   | { multi: true; values: string[]; onToggle: (v: string) => void }
 );
 
-function Chips(p: ChipProps) {
+export function Chips(p: ChipProps) {
   return (
     <fieldset aria-invalid={!!p.error} aria-describedby={p.error ? `${p.name}-err` : undefined}>
       <legend className="field-label">{p.label}</legend>

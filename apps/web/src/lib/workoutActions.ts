@@ -14,7 +14,7 @@ import { loadLibrary } from './library';
 import { requireProfile } from './profile';
 import { localToday } from './today';
 import {
-  buildBlock, eligibilityFor, gymInfo, isoMinusDays, loadActiveMeso, loadExcluded, loadHistory, loadSessions, mesoInfo, preparePlan,
+  buildBlock, eligibilityFor, ensureActiveProgram, gymInfo, isoMinusDays, loadActiveMeso, loadExcluded, loadHistory, loadSessions, mesoInfo, preparePlan,
   sessionOf, swapInPlan, weekView,
 } from './training';
 
@@ -28,7 +28,8 @@ export async function createBlock(reason: 'first' | 'completed' | 'rebuilt') {
   const { sb, user, profile } = await requireProfile();
   const { data: active } = await sb.from('workout_sessions').select('id').eq('status', 'active').maybeSingle();
   if (active) redirect('/gym');
-  await buildBlock(sb, user.id, profile, await localToday(), reason);
+  const program = await ensureActiveProgram(sb, user.id, profile);
+  await buildBlock(sb, user.id, profile, program, await localToday(), reason);
   done();
   redirect('/workout');
 }

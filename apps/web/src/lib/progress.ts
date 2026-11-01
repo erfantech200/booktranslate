@@ -60,9 +60,26 @@ export async function loadPRs(sb: SB): Promise<PRRow[]> {
   return (data ?? []).flatMap((s: any) => ((s.prs ?? []) as Omit<PRRow, 'date'>[]).map((p) => ({ ...p, date: s.date })));
 }
 
-export async function loadBlocks(sb: SB): Promise<{ blockNo: number; start: string; end: string | null; status: string }[]> {
-  const { data } = await sb.from('mesocycles').select('block_no, start_date, ended_at, status').order('seq');
-  return (data ?? []).map((m) => ({ blockNo: m.block_no, start: m.start_date, end: m.ended_at ? String(m.ended_at).slice(0, 10) : null, status: m.status }));
+export interface BlockRow {
+  blockNo: number;
+  start: string;
+  end: string | null;
+  status: string;
+  /** The program it belongs to (null once that program was deleted). */
+  program: { name: string | null; trainLocation: 'gym' | 'home'; daysPerWeek: number } | null;
+}
+
+export async function loadBlocks(sb: SB): Promise<BlockRow[]> {
+  const { data } = await sb.from('mesocycles')
+    .select('block_no, start_date, created_at, ended_at, status, program:programs(name, train_location, days_per_week)').order('seq');
+  return (data ?? []).map((m: any) => ({
+    blockNo: m.block_no,
+    // A paused block's start date moves forward when it resumes; the day it was built is its real start.
+    start: [m.start_date, String(m.created_at).slice(0, 10)].sort()[0]!,
+    end: m.ended_at ? String(m.ended_at).slice(0, 10) : null,
+    status: m.status,
+    program: m.program ? { name: m.program.name, trainLocation: m.program.train_location, daysPerWeek: m.program.days_per_week } : null,
+  }));
 }
 
 export interface PhotoRow { id: string; date: string; angle: Angle; path: string }
