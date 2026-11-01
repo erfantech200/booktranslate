@@ -186,6 +186,17 @@ export const COACH = {
     mealsPerDay: [3, 4, 5, 6] as const, // protein spread over 3–5+ meals (spec §9)
   },
 
+  // ─── Supplements (spec §9: creatine and protein powder only, an info card) ──────────────
+  supplements: {
+    // Creatine monohydrate 3–5 g a day fills muscle stores within ~3–4 weeks without a loading
+    // phase; what matters is taking it every day, rest days included, not the hour.
+    creatineGramsMin: 3,
+    creatineGramsMax: 5,
+    creatineGramsPerDay: 5, // the top of the range: simple to measure (one level teaspoon ≈ 5 g)
+    // Protein powder is a food in the plan (food id below), never an extra: its grams come from the plan.
+    proteinPowderFood: 'whey',
+  },
+
   // ─── Progress photos (spec §3, §10) ─────────────────────────────────────────────────────
   photos: {
     // Resized in the browser before upload: enough detail for comparison, small enough for the

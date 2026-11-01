@@ -8,8 +8,10 @@ import { Link } from '@/i18n/navigation';
 import { loadMeasurements } from '@/lib/progress';
 import { localToday } from '@/lib/today';
 import { loadActiveMeso, loadSessions, weekView } from '@/lib/training';
-import { measurementStatus, photoStatus, weekday } from '@coach/core/shared';
+import { COACH, daySupplements, measurementStatus, photoStatus, weekday } from '@coach/core/shared';
 import { MealCard } from '@/components/nutrition/MealCard';
+import { SupplementCard } from '@/components/nutrition/SupplementCard';
+import { loadSupplementDays } from '@/lib/supplements';
 import { mealView } from '@/lib/mealView';
 import { ensureTargets, foodMap, loadDayLogs, loadPlan, sumLogs, weekStartOf } from '@/lib/nutrition';
 
@@ -31,12 +33,14 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
   const measureDue = measurementStatus(measurements, today).due;
   const photosDue = photoStatus(lastPhoto ? [lastPhoto.taken_on] : [], today).due;
   const s = planSummary(profile, weighIns, today);
-  const [target, plan, logs, foods] = await Promise.all([
-    ensureTargets(sb, user.id, profile, today), loadPlan(sb, weekStartOf(today)), loadDayLogs(sb, today), foodMap(),
+  const [target, plan, logs, foods, sups] = await Promise.all([
+    ensureTargets(sb, user.id, profile, today), loadPlan(sb, weekStartOf(today)), loadDayLogs(sb, today), foodMap(), loadSupplementDays(sb, [today], today),
   ]);
   const eaten = sumLogs(logs);
   const eatenMeals = new Set(logs.map((l) => l.mealId).filter(Boolean));
   const todayMeals = plan?.status === 'ready' ? plan.meals.filter((m) => m.dayIdx === weekday(today)) : [];
+  const powder = foods.get(COACH.supplements.proteinPowderFood);
+  const sup = daySupplements({ meals: todayMeals, training: sups.training.get(today) ?? null, unitG: powder?.unit?.g });
   const view = block ? weekView(block.meso, block.days, await loadSessions(sb, block.meso.id), today) : null;
   const nextDay = view?.state.next ? block!.days[view.state.next.dayIdx] : null;
   const d = profile.digits;
@@ -115,6 +119,8 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
           <Link href="/nutrition" className="btn btn-secondary mt-3 w-full">{plan?.status === 'pending' ? tn('planPending') : tn('makePlan')}</Link>
         )}
       </section>
+
+      <SupplementCard sup={sup} isToday taken={sups.taken.has(today)} streak={sups.streak} unitFa={powder?.unit?.fa ?? null} digits={d} compact />
     </div>
   );
 }

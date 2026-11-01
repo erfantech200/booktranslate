@@ -10,3 +10,4 @@ export * from './engine/session';
 export * from './engine/autoreg';
 export * from './engine/nutrition';
 export * from './engine/progress';
+export * from './engine/supplements';

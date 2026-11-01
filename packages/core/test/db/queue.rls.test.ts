@@ -14,7 +14,7 @@ describe.skipIf(!RUN)('migrations', () => {
     expect(tables).toEqual([
       'ai_usage', 'body_metrics', 'exercise_prefs', 'exercises', 'food_logs', 'foods', 'jobs', 'login_attempts', 'meal_items', 'meal_plans',
       'meals', 'mesocycles', 'nutrition_targets', 'pain_reports', 'profile', 'program_days', 'program_exercises', 'programs', 'progress_photos',
-      'readiness', 'schema_migrations', 'set_logs', 'workout_sessions',
+      'readiness', 'schema_migrations', 'set_logs', 'supplement_logs', 'workout_sessions',
     ]);
     expect((await migrationStatus()).pending).toEqual([]);
     expect(await applyMigrations()).toEqual({ applied: [] });

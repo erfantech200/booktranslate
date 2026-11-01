@@ -51,7 +51,7 @@ export default async function TargetsPage({ params }: { params: Promise<{ locale
       </section>
       <section className="card" aria-labelledby="sup-h">
         <h2 id="sup-h" className="card-title">{t('supplementsTitle')}</h2>
-        <p className="mt-2 text-[0.9375rem] leading-7 text-muted">{t('supplements', { min: nf(3), max: nf(5) })}</p>
+        <p className="mt-2 text-[0.9375rem] leading-7 text-muted">{t('supplements', { min: nf(COACH.supplements.creatineGramsMin), max: nf(COACH.supplements.creatineGramsMax) })}</p>
       </section>
     </div>
   );

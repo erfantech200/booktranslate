@@ -1,14 +1,16 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { addDays, dayMacros, weekday } from '@coach/core/shared';
+import { addDays, COACH, dayMacros, daySupplements, weekday } from '@coach/core/shared';
 import { Link } from '@/i18n/navigation';
 import { MealCard } from '@/components/nutrition/MealCard';
 import { PlanStatus } from '@/components/nutrition/PlanStatus';
+import { SupplementCard } from '@/components/nutrition/SupplementCard';
 import { ConfirmSubmit } from '@/components/workout/ConfirmSubmit';
 import { fmtDate, fmtNum } from '@/lib/format';
 import { mealView } from '@/lib/mealView';
 import { ensureTargets, foodMap, loadDayLogs, loadPlan, planDays, weekStartOf } from '@/lib/nutrition';
 import { requestPlan } from '@/lib/nutritionActions';
 import { requireProfile } from '@/lib/profile';
+import { loadSupplementDays } from '@/lib/supplements';
 import { localToday } from '@/lib/today';
 
 export const dynamic = 'force-dynamic';
@@ -48,6 +50,9 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
   const meals = plan.meals.filter((m) => m.dayIdx === sel);
   const total = dayMacros(days[sel]!, foods);
   const eatenMeals = new Set(logs.map((l) => l.mealId).filter(Boolean));
+  const sups = await loadSupplementDays(sb, [date], today);
+  const powder = foods.get(COACH.supplements.proteinPowderFood);
+  const sup = daySupplements({ meals, training: sups.training.get(date) ?? null, unitG: powder?.unit?.g });
   return (
     <div className="space-y-4 pt-2">
       <header className="rise flex items-baseline justify-between gap-3">
@@ -73,6 +78,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
       <ul className="space-y-2">
         {meals.map((m) => <MealCard key={m.id} meal={mealView(m, foods, d)} eaten={date === today && eatenMeals.has(m.id)} digits={d} interactive={date === today} />)}
       </ul>
+      <SupplementCard sup={sup} isToday={date === today} taken={sups.taken.has(date)} streak={sups.streak} unitFa={powder?.unit?.fa ?? null} digits={d} />
       {plan.warnings.length > 0 && <p className="note note-info text-sm">{t('warnings', { n: fmtNum(plan.warnings.length, d) })}</p>}
       <form action={requestPlan.bind(null, true)} className="text-center">
         <ConfirmSubmit className="btn btn-ghost text-sm" confirm={t('regenerateConfirm')}>{t('regenerate')}</ConfirmSubmit>

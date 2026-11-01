@@ -1,10 +1,11 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { weekday } from '@coach/core/shared';
+import { COACH, daySupplements, weekday } from '@coach/core/shared';
 import { Link } from '@/i18n/navigation';
 import { LogBox } from '@/components/nutrition/LogBox';
 import { MealCard } from '@/components/nutrition/MealCard';
 import { PlanStatus } from '@/components/nutrition/PlanStatus';
 import { ProteinNudge } from '@/components/nutrition/ProteinNudge';
+import { SupplementCard } from '@/components/nutrition/SupplementCard';
 import { MacroBars, Rings } from '@/components/nutrition/Rings';
 import { ConfirmSubmit } from '@/components/workout/ConfirmSubmit';
 import { fmtDate, fmtNum } from '@/lib/format';
@@ -12,6 +13,7 @@ import { mealView } from '@/lib/mealView';
 import { ensureTargets, foodMap, loadDayLogs, loadPlan, sumLogs, weekStartOf } from '@/lib/nutrition';
 import { deleteLogEntry, requestPlan } from '@/lib/nutritionActions';
 import { requireProfile } from '@/lib/profile';
+import { loadSupplementDays } from '@/lib/supplements';
 import { localTimeZone, localToday } from '@/lib/today';
 
 export const dynamic = 'force-dynamic';
@@ -25,12 +27,14 @@ export default async function NutritionPage({ params }: { params: Promise<{ loca
   const nf = (n: number) => fmtNum(Math.round(n), d);
   const today = await localToday();
   const timeZone = await localTimeZone();
-  const [target, plan, logs, foods] = await Promise.all([
-    ensureTargets(sb, user.id, profile, today), loadPlan(sb, weekStartOf(today)), loadDayLogs(sb, today), foodMap(),
+  const [target, plan, logs, foods, sups] = await Promise.all([
+    ensureTargets(sb, user.id, profile, today), loadPlan(sb, weekStartOf(today)), loadDayLogs(sb, today), foodMap(), loadSupplementDays(sb, [today], today),
   ]);
   const eaten = sumLogs(logs);
   const meals = plan?.status === 'ready' ? plan.meals.filter((m) => m.dayIdx === weekday(today)) : [];
   const eatenMeals = new Set(logs.map((l) => l.mealId).filter(Boolean));
+  const powder = foods.get(COACH.supplements.proteinPowderFood);
+  const sup = daySupplements({ meals, training: sups.training.get(today) ?? null, unitG: powder?.unit?.g });
   const entries = [...new Map(logs.map((l) => [l.entryId, logs.filter((x) => x.entryId === l.entryId)])).values()];
 
   return (
@@ -51,6 +55,7 @@ export default async function NutritionPage({ params }: { params: Promise<{ loca
         <p className="text-xs text-muted">{t('water')}: {t('waterValue', { l: fmtNum(target.waterMl / 1000, d), lt: fmtNum((target.waterMl + 500) / 1000, d) })}</p>
       </section>
       <ProteinNudge protein={eaten.protein} target={target.protein} digits={d} />
+      <SupplementCard sup={sup} isToday taken={sups.taken.has(today)} streak={sups.streak} unitFa={powder?.unit?.fa ?? null} digits={d} />
 
       {!plan || plan.status === 'failed' ? (
         <section className="card" aria-labelledby="plan-h">

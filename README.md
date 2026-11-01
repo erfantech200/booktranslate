@@ -26,8 +26,9 @@ translator) is [`docs/AUDIT.md`](docs/AUDIT.md). Conventions and hard rules: [`C
   - a food database of 200 foods (USDA reference values, Persian staples) in `packages/core/src/data/foods.ts`;
   - deterministic targets (Mifflin-St Jeor, activity factor, +300 kcal, protein 1.8 g/kg, fat, fiber, water);
   - a weekly meal plan written by the LLM as a background job, with portions scaled by code to ±5 % kcal and ±10 % protein, variety rules and a grocery list;
-  - logging by "ate as planned", free text or photo (the model maps foods and grams, code computes macros, you confirm), daily rings and a one-tap meal swap.
-
+  - logging by "ate as planned", free text or photo (the model maps foods and grams, code computes macros, you confirm), daily rings and a one-tap meal swap;
+  - a daily supplement card on Today, Nutrition and every plan day: creatine 5 g (same on rest days, with a "taken" tick and streak),
+    the protein powder already in that day's plan, and a note that vitamins come from food (blood test and doctor if in doubt).
 - **Phase 4:**
   - Progress tab with four sections: Overview, Strength, Body & photos, and Journey;
   - a "gain quality" indicator: waist change per kg gained and the strength trend over 4 weeks. It is labelled as a proxy, never as kg of muscle;

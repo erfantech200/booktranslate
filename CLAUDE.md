@@ -61,6 +61,10 @@ pnpm seed:dev     # dev only, localhost DATABASE_URL only: 8 weeks of fake histo
   grams (`coachText/mealPlan.ts`, `coachText/foodParse.ts`, enum-constrained to catalogue ids); code computes
   every macro. Weekly plans are built by the `meal_plan` job. The owner's own LLM-estimated foods live in
   `foods` with `user_id` set and `estimated = true`.
+- Supplements (spec §9): creatine and protein powder ONLY (`engine/supplements.ts`, doses in `coach.config.ts`). The daily
+  card (Today, Nutrition, each plan day) shows creatine at the same dose on training and rest days, the protein powder the
+  day's meal plan already holds, and a fixed note that vitamins come from food (blood test + doctor if in doubt). Never add
+  vitamin or mineral doses. Creatine ticks live in `supplement_logs` (`lib/supplementActions.ts`, today only).
 - Progress (spec §10): all analytics in `engine/progress.ts` (measurement and photo due dates, e1RM series, weekly
   volume, sets per muscle against the block's plan, gain quality, adherence, streaks, the journey timeline); web loaders in
   `apps/web/src/lib/progress.ts`. "Gain quality" is a labelled proxy (waist cm per kg gained + strength trend), never a
