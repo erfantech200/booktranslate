@@ -36,8 +36,14 @@ translator) is [`docs/AUDIT.md`](docs/AUDIT.md). Conventions and hard rules: [`C
   - e1RM charts for the main lifts, records, weekly tonnage, and weekly sets per muscle against the block's plan;
   - measurements every 2 weeks; a photo camera that overlays the previous photo as a ghost; a photo compare view (side by side or slider);
   - a timeline of the year.
-
-Phase 5 (see the spec) adds the AI coach.
+- **Phase 5:**
+  - a weekly check-in on your chosen day (Settings): weight trend (≥ 4 weigh-ins), the calorie rule (+150 / −100…150 kcal, at most once a week),
+    stalled lifts, early deload, pain and missed sessions; a Persian narrative; every change is a proposal you approve with one tap;
+  - the Coach tab: a Persian chat that sees your profile, program, today's plan, targets, the last 14 days and the latest check-in, and can
+    propose (never apply) a swap, a calorie change, a reschedule, a note or a new meal; red flags get a fixed stop message;
+  - exercise illustrations (drawn on first view or in one batch from Settings), with "image is wrong" and "regenerate";
+  - Today: tip of the day chosen by what is true today, weekly badges, streaks, check-in and readiness prompts;
+  - Settings: AI spend this month against the cap, per feature, and the monthly image count.
 
 ## Repo
 

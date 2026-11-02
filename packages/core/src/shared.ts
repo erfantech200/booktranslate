@@ -11,3 +11,6 @@ export * from './engine/autoreg';
 export * from './engine/nutrition';
 export * from './engine/progress';
 export * from './engine/supplements';
+export * from './engine/checkin';
+export * from './engine/engagement';
+export * from './engine/safety';

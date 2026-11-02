@@ -43,3 +43,11 @@ USD per 1M tokens. **Unverified.** The sources are TheNextWeb, llmgateway and re
 | gpt-6-luna | 0.10 | 0.01 | 0.125 | 0.50 |
 | gpt-6-sol / gpt-6.1-sol | 2.00 | 0.20 *(assumed 10%)* | 2.50 *(assumed)* | 10.00 |
 | gpt-6-astra | 10.00 | 1.00 | 12.50 *(assumed)* | 50.00 |
+
+## Exercise images (Phase 5)
+
+- `client.images.generate({ model: OPENAI_IMAGE_MODEL, prompt, n: 1, size: '1536x1024', quality: 'medium', output_format: 'webp', background: 'opaque' })`
+  → `data[0].b64_json`; `usage.input_tokens` / `usage.output_tokens` (types from SDK 7.43.0 `resources/images.d.ts`).
+- Image prices are **not verified**, so `cost_usd` is logged as 0 for `exercise_image` and the money budget can't see them;
+  `coach.config.ts → exerciseImages.maxPerMonth` caps the count instead. Add a verified price before relying on spend totals.
+- Never called on the production key yet.

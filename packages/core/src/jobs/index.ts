@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { PermanentError, type JobContext } from './context';
+import { ExerciseImagesPayload, runExerciseImages } from './exerciseImages';
 import { MealPlanPayload, runMealPlan } from './mealPlan';
 
 export * from './context';
@@ -13,6 +14,7 @@ export interface JobHandler<P> {
 // weekly meal plans, the weekly check-in). Unknown types fail permanently.
 const handlers: Record<string, JobHandler<any>> = {
   meal_plan: { payload: MealPlanPayload, run: runMealPlan },
+  exercise_images: { payload: ExerciseImagesPayload, run: (ctx, p) => runExerciseImages(ctx, p) },
 };
 
 export const jobTypes = () => Object.keys(handlers);

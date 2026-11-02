@@ -10,6 +10,7 @@ import { requireProfile } from '@/lib/profile';
 import { localToday } from '@/lib/today';
 import { programLabel } from '@/lib/programLabel';
 import { earlyDeloadCheck, holdRampFor, isoMinusDays, loadActiveMeso, loadPrograms, loadReadiness, loadSessions, mesoInfo, todayIsLow, weekView } from '@/lib/training';
+import { removeNote } from '@/lib/adjustActions';
 import { deleteProgram } from '@/lib/programActions';
 import { acceptEarlyDeload, createBlock, discardWorkout, skipDay, startWorkout } from '@/lib/workoutActions';
 
@@ -96,6 +97,7 @@ export default async function WorkoutPage({ params }: { params: Promise<{ locale
   const nextDay = next ? days[next.dayIdx]! : null;
   const preview = nextDay?.exercises.map((x) => ({ ...x, n: setsFor(x.sets, wc, { holdRamp: hold, lowReadiness: low }) })) ?? [];
   const recent = sessions.filter((s) => s.status !== 'active').slice(-6).reverse();
+  const { data: notes } = await sb.from('adjustments').select('id, after').eq('type', 'add_note').eq('status', 'approved').order('created_at', { ascending: false }).limit(5);
 
   return (
     <div className="space-y-4 pt-2">
@@ -115,6 +117,20 @@ export default async function WorkoutPage({ params }: { params: Promise<{ locale
         </ol>
         {!view.over && <p className="mt-2 text-sm text-muted">{t(`phaseHint.${phase}`)}</p>}
       </header>
+
+      {(notes ?? []).length > 0 && (
+        <section className="card" aria-labelledby="notes-h">
+          <h2 id="notes-h" className="card-title">{t('notesTitle')}</h2>
+          <ul className="mt-2 divide-y divide-line">
+            {(notes ?? []).map((n) => (
+              <li key={n.id} className="flex items-start justify-between gap-3 py-2">
+                <span className="leading-7" dir="auto">{(n.after as { text: string }).text}</span>
+                <form action={removeNote.bind(null, n.id)}><button className="btn btn-ghost min-h-8 px-2 text-xs">{t('notesRemove')}</button></form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {active && (
         <section className="card border-accent rise">
@@ -236,8 +252,10 @@ export default async function WorkoutPage({ params }: { params: Promise<{ locale
             </details>
           )}
 
-          <ReadinessCard today={today} low={low} digits={d}
-            entry={todayReady ? { sleepHours: todayReady.sleepHours, energy: todayReady.energy, soreness: todayReady.soreness } : null} />
+          <div id="readiness" className="scroll-mt-4">
+            <ReadinessCard today={today} low={low} digits={d}
+              entry={todayReady ? { sleepHours: todayReady.sleepHours, energy: todayReady.energy, soreness: todayReady.soreness } : null} />
+          </div>
 
           <section className="card" aria-labelledby="week-h">
             <h2 id="week-h" className="card-title">{t('thisWeek')}</h2>

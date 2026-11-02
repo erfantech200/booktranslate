@@ -186,6 +186,51 @@ export const COACH = {
     mealsPerDay: [3, 4, 5, 6] as const, // protein spread over 3–5+ meals (spec §9)
   },
 
+  // ─── Weekly check-in (spec §11) ─────────────────────────────────────────────────────────
+  checkin: {
+    defaultWeekday: 6, // Friday (0 = Saturday): the Persian week ends, the review comes before the new one
+    // Calorie rules compare the 2-week average gain with the target rate (kg/week).
+    belowTargetKgPerWeek: 0.1, // more than 0.1 kg/week under target → +150 kcal
+    raiseKcal: 150,
+    aboveTargetKgPerWeek: 0.15, // more than 0.15 kg/week over target → −100 kcal …
+    lowerKcal: 100,
+    lowerKcalLarge: 150, // … or −150 when it is more than this far over
+    largeOverKgPerWeek: 0.3,
+    // Waist rising faster than ~1 cm a month while strength is flat means the surplus is mostly fat.
+    waistRisingCmPerMonth: 1,
+    waistWindowDays: 35, // the waist trend uses the measurements of the last ~5 weeks …
+    waistMinSpanDays: 21, // … at least 3 weeks apart, or tape noise dominates
+    minDaysBetweenChanges: 7, // at most one calorie change a week: the scale needs time to show it
+    // The surplus stays within these bounds whatever the rules say (spec §9: lean bulk, no extreme diets).
+    surplusMinKcal: 0,
+    surplusMaxKcal: 800,
+    lowReadinessDays: 3, // 3+ low-readiness days in the week → a recovery note
+  },
+
+  // ─── AI coach chat (spec §12) ───────────────────────────────────────────────────────────
+  coach: {
+    historyMessages: 16, // the last 16 messages go with each request: enough for a thread, cheap to cache
+    maxMessageChars: 2000, // one question, not a document
+    contextDays: 14, // the summary covers the last two weeks (spec §12)
+    calorieChangeMaxKcal: 150, // a coach proposal moves calories by at most the check-in step
+  },
+
+  // ─── Exercise illustrations (spec §7) ───────────────────────────────────────────────────
+  exerciseImages: {
+    size: '1536x1024', // landscape: start position and end position side by side
+    quality: 'medium' as const, // enough detail for a phone screen at a fraction of 'high'
+    format: 'webp' as const,
+    // Image prices are not verified, so the money budget can't see them: cap the count instead.
+    // 78 exercises plus some regenerations fit in the first month.
+    maxPerMonth: 100,
+    promptVersion: 1, // bump to regenerate every illustration with a new prompt
+  },
+
+  // ─── Engagement (spec §13) ──────────────────────────────────────────────────────────────
+  engagement: {
+    proteinStreakBadgeDays: 7, // a week of protein days earns the protein badge
+  },
+
   // ─── Supplements (spec §9: creatine and protein powder only, an info card) ──────────────
   supplements: {
     // Creatine monohydrate 3–5 g a day fills muscle stores within ~3–4 weeks without a loading

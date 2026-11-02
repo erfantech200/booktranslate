@@ -13,7 +13,9 @@ removed from the previous product (Bookbridge, a book translator). Verified Open
   service role / `DATABASE_URL`: the worker route `app/api/worker/run` (+ `lib/workerRun.ts`), the
   migration runner `app/api/admin/migrate` and the health check (all CRON_SECRET-protected), and the
   sign-in action's rate limiter (`login_attempts`, written before anyone is signed in), and
-  AI-usage logging inside `structuredCall()` (e.g. `/api/workout/comment`), which writes `ai_usage` through the core pool.
+  AI-usage logging inside `structuredCall()` (e.g. `/api/workout/comment`), which writes `ai_usage` through the core pool,
+  and exercise illustrations (`/api/exercise-image`, `lib/imageActions.ts`), which write the shared `exercises` row and the
+  `exercise-images` bucket.
 - Auth: sign-in runs server-side (`app/[locale]/login/actions.ts`); session cookies are httpOnly,
   Secure, SameSite=Lax, 30-day rolling (`lib/supabase/cookies.ts`). There is no browser Supabase
   client: storage uploads go through server routes (e.g. `app/api/photos`).
@@ -70,6 +72,23 @@ pnpm seed:dev     # dev only, localhost DATABASE_URL only: 8 weeks of fake histo
   volume, sets per muscle against the block's plan, gain quality, adherence, streaks, the journey timeline); web loaders in
   `apps/web/src/lib/progress.ts`. "Gain quality" is a labelled proxy (waist cm per kg gained + strength trend), never a
   body-fat or kg-of-muscle figure. An exercise's first session is its baseline and is not shown as a record.
+- Phase 5 (spec §11–§15):
+  - Weekly check-in: rules in `engine/checkin.ts` (weight trend, calorie rule, training notes; constants in `coach.config.ts`
+    `checkin`), web glue `lib/checkin.ts` (`ensureCheckin` creates it lazily on Today/Coach the first time the app is opened on
+    or after `profile.checkin_weekday`). The narrative (`coachText/checkinNarrative.ts`, `/api/checkin/narrative`) only words the
+    report.
+  - Every change the check-in or the coach suggests is a row in `adjustments` (status proposed → approved/dismissed/failed, the
+    audit trail). `lib/adjustments.ts` validates against the engine's bounds when proposed AND when approved, then applies;
+    `lib/adjustActions.ts` is the one-tap decision. Never apply a proposal without that tap.
+  - Coach chat: `coachText/coachChat.ts` (structured outputs; proposals are a typed union, the function-calling contract),
+    context in `lib/coachContext.ts` (also lists the ids proposals may use), route `/api/coach/chat`. Red flags in a message
+    (`engine/safety.ts`) get the fixed `coach.redFlag` text without calling the model.
+  - Exercise images: `packages/core/src/images.ts` (one style prompt, `exercise-images` private bucket, count cap
+    `exerciseImages.maxPerMonth` because image prices are unverified); lazy on the exercise page via `/api/exercise-image`, batch
+    via the `exercise_images` job; flag/regenerate in `lib/imageActions.ts`. These write the shared `exercises` row through the core
+    pool (service role), like the seed.
+  - Engagement: `engine/engagement.ts` (tip of the day by priority, weekly badges), loader `lib/engagement.ts`; tips are copy in
+    `engagement.tips` (the engine picks topic and variant).
 - Lists that grow all year (`set_logs`, `food_logs`) are read with `allRows()` (`lib/paged.ts`): PostgREST
   returns at most 1000 rows per request.
 - `packages/core/src/dev/` is dev-only (fake data + seeding); never import it from the app.

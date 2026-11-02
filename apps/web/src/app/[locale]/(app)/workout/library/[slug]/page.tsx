@@ -4,6 +4,7 @@ import { bestE1rm, type Muscle } from '@coach/core/shared';
 import { Link } from '@/i18n/navigation';
 import { BodyMap } from '@/components/workout/BodyMap';
 import { ConfirmSubmit } from '@/components/workout/ConfirmSubmit';
+import { ExerciseImage } from '@/components/workout/ExerciseImage';
 import { HistoryChart } from '@/components/workout/HistoryChart';
 import { fmtNum } from '@/lib/format';
 import { loadLibrary } from '@/lib/library';
@@ -30,6 +31,9 @@ export default async function ExercisePage({ params }: { params: Promise<{ local
     loadHistory(sb, [slug]),
     sb.from('exercise_prefs').select('excluded, excluded_reason').eq('slug', slug).maybeSingle(),
   ]);
+  // Signed only for this view (≤ 10 min); the stored path never reaches the browser.
+  const imageUrl = e.imageStatus === 'ok' && e.imageUrl
+    ? (await sb.storage.from('exercise-images').createSignedUrl(e.imageUrl, 600)).data?.signedUrl ?? null : null;
   const xs = exposures.get(slug) ?? [];
   const b = bests.get(slug);
   const useLoad = !e.timed && e.loadType !== 'bodyweight' && e.loadType !== 'band';
@@ -66,6 +70,8 @@ export default async function ExercisePage({ params }: { params: Promise<{ local
           <form action={setExcluded.bind(null, slug, false)} className="mt-3"><ConfirmSubmit className="btn btn-secondary w-full">{t('reenable')}</ConfirmSubmit></form>
         </section>
       )}
+
+      <ExerciseImage slug={slug} name={e.nameFa} status={e.imageStatus} url={imageUrl} />
 
       <section className="card" aria-labelledby="mus-h">
         <h2 id="mus-h" className="card-title">{t('muscles')}</h2>

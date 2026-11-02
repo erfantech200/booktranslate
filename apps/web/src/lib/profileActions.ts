@@ -93,3 +93,12 @@ export async function saveDisplay(form: FormData) {
   (await cookies()).set('theme', theme, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 400 * 86_400 });
   revalidatePath('/', 'layout');
 }
+
+/** The weekday of the weekly check-in (0 = Saturday … 6 = Friday). */
+export async function saveCheckinDay(form: FormData) {
+  const day = Number(form.get('checkinWeekday'));
+  if (!Number.isInteger(day) || day < 0 || day > 6) return;
+  const { sb, user } = await loadProfile();
+  await sb.from('profile').update({ checkin_weekday: day }).eq('user_id', user.id);
+  revalidatePath('/', 'layout');
+}

@@ -64,7 +64,23 @@ export async function ensureTargets(sb: SB, userId: string, profile: Profile, to
   else if (Math.abs(Number(last.factor) - factor) > 0.0005) reason = 'profile';
   else if (Math.abs(Number(last.weight_kg) - weightKg) >= 2) reason = 'weight';
   if (!reason) return targetOf(last);
-  const t = computeTargets({ ...input, surplusKcal: last?.surplus });
+  return writeTargets(sb, userId, profile, today, last?.surplus, reason);
+}
+
+/**
+ * New targets from today with the given surplus (the engine computes everything else). Used by
+ * ensureTargets and by an approved calorie change (check-in or coach).
+ */
+export async function writeTargets(
+  sb: SB, userId: string, profile: Profile, today: string, surplus: number | undefined,
+  reason: 'initial' | 'profile' | 'weight' | 'weekly_adjustment' | 'manual',
+): Promise<TargetRow> {
+  const weightKg = Math.round((await currentWeightKg(sb, profile)) * 10) / 10;
+  const age = Number(today.slice(0, 4)) - (profile.birth_year ?? 1995);
+  const t = computeTargets({
+    sex: profile.sex ?? 'male', weightKg, heightCm: profile.height_cm ?? 175, age,
+    activity: profile.daily_activity ?? 'light', trainingDays: profile.days_per_week ?? 3, surplusKcal: surplus,
+  });
   const { data, error } = await sb.from('nutrition_targets').insert({
     user_id: userId, effective_from: today, kcal: t.kcal, protein_g: t.protein, carbs_g: t.carbs, fat_g: t.fat, fiber_g: t.fiber,
     water_ml: t.waterMl, bmr: t.bmr, tdee: t.tdee, factor: t.factor, surplus: t.surplus, weight_kg: weightKg, reason,

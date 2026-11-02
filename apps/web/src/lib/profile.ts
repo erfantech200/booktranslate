@@ -38,6 +38,8 @@ export interface Profile {
   target_weight_12m_kg: number | null;
   theme: 'dark' | 'light';
   digits: Digits;
+  /** Weekday of the weekly check-in, 0 = Saturday (null before the Phase 5 migration). */
+  checkin_weekday: number | null;
 }
 
 const NUMERIC = ['height_cm', 'dumbbell_min_kg', 'dumbbell_max_kg', 'start_weight_kg', 'target_gain_pct_week', 'target_weight_12m_kg'] as const;
