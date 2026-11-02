@@ -13,8 +13,12 @@ import { loadProgramBlocks, loadPrograms } from '@/lib/training';
 export const dynamic = 'force-dynamic';
 
 /** Every training program: switch the active one, rename, delete, or make a new one. */
-export default async function ProgramsPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function ProgramsPage({ params, searchParams }: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ new?: string }>;
+}) {
   const { locale } = await params;
+  const openNew = (await searchParams).new === '1';
   setRequestLocale(locale);
   const { sb, profile } = await requireProfile();
   const t = await getTranslations('programs');
@@ -70,14 +74,19 @@ export default async function ProgramsPage({ params }: { params: Promise<{ local
               </span>
             </div>
 
-            {!p.active && !running && (
-              <form action={switchProgram.bind(null, p.id)} className="mt-4">
-                <ConfirmSubmit className="btn btn-primary w-full">{t('switch')}</ConfirmSubmit>
+            <div className="mt-4 flex gap-2">
+              {!p.active && !running && (
+                <form action={switchProgram.bind(null, p.id)} className="flex-1">
+                  <ConfirmSubmit className="btn btn-primary w-full">{t('switch')}</ConfirmSubmit>
+                </form>
+              )}
+              <form action={deleteProgram.bind(null, p.id, 'plan', 'list')} className="flex-1">
+                <ConfirmSubmit className="btn btn-secondary w-full text-danger" confirm={t('deleteConfirm')}>{t('delete')}</ConfirmSubmit>
               </form>
-            )}
+            </div>
 
             <details className="mt-3 border-t border-line pt-2">
-              <summary className="cursor-pointer py-1 text-sm font-medium text-accent-text">{t('rename')} / {t('delete')}</summary>
+              <summary className="cursor-pointer py-1 text-sm font-medium text-accent-text">{t('more')}</summary>
               <form action={renameProgram.bind(null, p.id)} className="mt-3 flex items-end gap-2">
                 <label className="field mb-0 flex-1">
                   <span className="field-label">{t('name')}</span>
@@ -85,15 +94,16 @@ export default async function ProgramsPage({ params }: { params: Promise<{ local
                 </label>
                 <ConfirmSubmit className="btn btn-secondary">{tc('save')}</ConfirmSubmit>
               </form>
-              <form action={deleteProgram.bind(null, p.id)} className="mt-3">
-                <ConfirmSubmit className="btn btn-ghost w-full text-danger" confirm={t('deleteConfirm')}>{t('delete')}</ConfirmSubmit>
+              <form action={deleteProgram.bind(null, p.id, 'all', 'list')} className="mt-4">
+                <ConfirmSubmit className="btn btn-ghost w-full text-danger" confirm={t('deleteAllConfirm')}>{t('deleteAll')}</ConfirmSubmit>
+                <p className="field-hint text-center">{t('deleteAllHint')}</p>
               </form>
             </details>
           </section>
         );
       })}
 
-      <details className="card" open={programs.length === 0}>
+      <details className="card scroll-mt-4" id="new" open={programs.length === 0 || openNew}>
         <summary className="cursor-pointer text-lg font-extrabold">{t('new')}</summary>
         <div className="mt-4">
           <ProgramForm initial={{

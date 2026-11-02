@@ -98,17 +98,23 @@ export async function renameProgram(programId: string, form: FormData) {
 }
 
 /**
- * Delete a program and its plan. Finished workouts are history and stay (strength charts, records,
- * the journey): blocks that hold them are kept, closed as "deleted" and unlinked. A workout running
- * in this program is cancelled with it.
+ * Delete a program and its plan. A workout running in this program is cancelled with it.
+ * `plan`: finished workouts are history and stay (strength charts, records, the journey): blocks
+ * that hold them are kept, closed as "deleted" and unlinked.
+ * `all`: a clean slate: its blocks go with every workout and set logged in them.
+ * `next`: where to land: the program list, or the new-program form ("start from scratch").
  */
-export async function deleteProgram(programId: string) {
+export async function deleteProgram(programId: string, scope: 'plan' | 'all', next: 'list' | 'new') {
   const { sb } = await requireProfile();
   const { data: prog } = await sb.from('programs').select('id').eq('id', programId).maybeSingle();
   if (!prog) redirect('/workout/programs');
   const { data: mesos } = await sb.from('mesocycles').select('id, status').eq('program_id', programId);
   const ids = (mesos ?? []).map((m) => m.id);
-  if (ids.length) {
+  if (ids.length && scope === 'all') {
+    // Sessions and their sets cascade; pain reports keep their entry without the session link.
+    const { error } = await sb.from('mesocycles').delete().in('id', ids);
+    if (error) throw new Error(error.message);
+  } else if (ids.length) {
     const { error: e0 } = await sb.from('workout_sessions').delete().in('mesocycle_id', ids).eq('status', 'active');
     if (e0) throw new Error(e0.message);
     const { data: withHistory } = await sb.from('workout_sessions').select('mesocycle_id').in('mesocycle_id', ids).eq('status', 'done');
@@ -127,5 +133,5 @@ export async function deleteProgram(programId: string) {
   const { error } = await sb.from('programs').delete().eq('id', programId);
   if (error) throw new Error(error.message);
   done();
-  redirect('/workout/programs');
+  redirect(next === 'new' ? '/workout/programs?new=1' : '/workout/programs');
 }

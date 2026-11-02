@@ -10,6 +10,7 @@ import { requireProfile } from '@/lib/profile';
 import { localToday } from '@/lib/today';
 import { programLabel } from '@/lib/programLabel';
 import { earlyDeloadCheck, holdRampFor, isoMinusDays, loadActiveMeso, loadPrograms, loadReadiness, loadSessions, mesoInfo, todayIsLow, weekView } from '@/lib/training';
+import { deleteProgram } from '@/lib/programActions';
 import { acceptEarlyDeload, createBlock, discardWorkout, skipDay, startWorkout } from '@/lib/workoutActions';
 
 export const dynamic = 'force-dynamic';
@@ -272,7 +273,7 @@ export default async function WorkoutPage({ params }: { params: Promise<{ locale
         <section className="card">
           <p className="text-muted">{t('settingsChanged')}</p>
           <form action={createBlock.bind(null, 'rebuilt')} className="mt-3">
-            <ConfirmSubmit className="btn btn-secondary w-full" confirm={t('rebuildConfirm')} pendingLabel={t('building')}>{t('rebuild')}</ConfirmSubmit>
+            <ConfirmSubmit className="btn btn-secondary w-full" confirm={active ? t('rebuildConfirmRunning') : t('rebuildConfirm')} pendingLabel={t('building')}>{t('rebuild')}</ConfirmSubmit>
           </form>
         </section>
       )}
@@ -298,10 +299,25 @@ export default async function WorkoutPage({ params }: { params: Promise<{ locale
         </section>
       )}
 
-      {!view.over && !settingsChanged && (
-        <form action={createBlock.bind(null, 'rebuilt')} className="text-center">
-          <ConfirmSubmit className="btn btn-ghost text-sm" confirm={t('rebuildConfirm')} pendingLabel={t('building')}>{t('rebuild')}</ConfirmSubmit>
-        </form>
+      {program && (
+        <section className="card" aria-labelledby="prog-h">
+          <h2 id="prog-h" className="card-title">{t('thisProgram')}</h2>
+          <p className="mt-1 text-sm text-muted">{programLabel(program, tpr, d)}</p>
+          <div className="mt-4 grid gap-2">
+            {!settingsChanged && (
+              <form action={createBlock.bind(null, 'rebuilt')}>
+                <ConfirmSubmit className="btn btn-secondary w-full" confirm={active ? t('rebuildConfirmRunning') : t('rebuildConfirm')} pendingLabel={t('building')}>
+                  {t('rebuild')}
+                </ConfirmSubmit>
+              </form>
+            )}
+            <Link href="/workout/programs?new=1" className="btn btn-secondary w-full">{t('newProgram')}</Link>
+            <form action={deleteProgram.bind(null, program.id, 'plan', 'new')}>
+              <ConfirmSubmit className="btn btn-ghost w-full text-danger" confirm={t('deleteScratchConfirm')}>{t('deleteScratch')}</ConfirmSubmit>
+            </form>
+          </div>
+          <p className="field-hint">{t('deleteScratchHint')}</p>
+        </section>
       )}
       {libraryLink}
     </div>

@@ -23,11 +23,18 @@ import {
 
 const done = () => revalidatePath('/', 'layout');
 
-/** Build the first block, the next one, or rebuild after settings changed. */
+/**
+ * Build the first block, the next one, or start the program over from week 1 ("rebuilt"). Starting
+ * over cancels a workout that is still running (the button says so); otherwise finish it first.
+ */
 export async function createBlock(reason: 'first' | 'completed' | 'rebuilt') {
   const { sb, user, profile } = await requireProfile();
   const { data: active } = await sb.from('workout_sessions').select('id').eq('status', 'active').maybeSingle();
-  if (active) redirect('/gym');
+  if (active && reason !== 'rebuilt') redirect('/gym');
+  if (active) {
+    const { error } = await sb.from('workout_sessions').delete().eq('id', active.id);
+    if (error) throw new Error(error.message);
+  }
   const program = await ensureActiveProgram(sb, user.id, profile);
   await buildBlock(sb, user.id, profile, program, await localToday(), reason);
   done();
